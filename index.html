@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mini Meihua｜梅花易數一事一問 · 小六太乙</title>
+<meta name="description" content="寫下一件想問的事，以此刻、隨機或數字起卦，看本卦、互卦、變卦與動爻爻辭，並產生 AI 深讀提示。">
+<meta name="theme-color" content="#f4efe5">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23fffdf8' stroke='%23b68b43'/%3E%3Cpath d='M9 10h14M9 16h5m4 0h5M9 22h14' stroke='%2384602f' stroke-width='2.4'/%3E%3C/svg%3E">
+<style>
+
+:root{
+  --paper:#ffffff;
+  --paper-line:#e7e1d4;
+  --ivory:#f7f4ec;
+  --ivory-dim:#efe9dc;
+  --gold:#c9a052;
+  --gold-deep:#a8813c;
+  --mist:#9a927f;
+  --ink:#3c372f;
+  --ink-soft:#6b6355;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU","Microsoft JhengHei",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{
+  font-family:var(--serif);
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  min-height:100dvh;
+  padding:max(20px, env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;
+  letter-spacing:.02em;
+}
+.wrap{width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center}
+
+/* ── header ── */
+header{text-align:center;margin-bottom:18px}
+h1{
+  font-size:clamp(1.6rem,6vw,2rem);
+  font-weight:600;letter-spacing:.35em;text-indent:.35em;
+  color:var(--ink);
+}
+.sub{
+  margin-top:8px;font-size:.8rem;color:var(--mist);letter-spacing:.3em;text-indent:.3em;
+}
+.hairline{
+  width:120px;height:1px;margin:14px auto 0;
+  background:linear-gradient(90deg,transparent,var(--gold-deep),transparent);
+}
+
+/* ── mode switch ── */
+.modes{
+  display:flex;gap:0;margin-bottom:22px;
+  border:1px solid var(--paper-line);border-radius:999px;overflow:hidden;
+  background:#fbf9f4;
+}
+.modes button{
+  font-family:inherit;font-size:.88rem;letter-spacing:.15em;text-indent:.15em;
+  color:var(--mist);background:none;border:none;
+  padding:9px 22px;cursor:pointer;transition:color .25s,background .25s;
+}
+.modes button.on{
+  color:#fff;background:var(--gold);font-weight:600;
+}
+
+/* ── stone (flip) ── */
+.stone{
+  perspective:900px;cursor:pointer;border:none;background:none;padding:0;
+  -webkit-user-select:none;user-select:none;
+}
+.stone:focus-visible{outline:2px solid var(--gold);outline-offset:6px;border-radius:50%}
+.stone .inner{
+  position:relative;transform-style:preserve-3d;
+  transition:transform .65s cubic-bezier(.4,.1,.2,1);
+}
+.stone.flipped .inner{transform:rotateY(180deg)}
+.stone img{
+  display:block;
+  height:clamp(150px,42vw,250px);
+  width:auto;
+  filter:drop-shadow(0 7px 12px rgba(92,74,40,.28)) drop-shadow(0 2px 4px rgba(92,74,40,.16));
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  pointer-events:none;
+}
+.stone img.back{position:absolute;top:0;left:0;transform:rotateY(180deg)}
+.stone.small img{height:clamp(86px,25vw,140px)}
+@keyframes breathe{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-7px)}
+}
+.stone.waiting .inner{animation:breathe 3.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .stone .inner{transition:none}
+  .stone.waiting .inner{animation:none}
+}
+.hint{
+  margin-top:12px;font-size:.85rem;color:var(--mist);letter-spacing:.25em;text-indent:.25em;
+  text-align:center;
+}
+.ritual{
+  margin-bottom:18px;text-align:center;
+  font-size:.85rem;line-height:2;color:var(--gold-deep);
+  letter-spacing:.18em;
+}
+
+/* ── daily view ── */
+#dailyView{display:flex;flex-direction:column;align-items:center;width:100%}
+.dateline{font-size:.78rem;color:var(--mist);letter-spacing:.2em;margin-bottom:16px}
+
+/* ── spread view ── */
+#spreadView{display:none;flex-direction:column;align-items:center;width:100%}
+.spreadRow{
+  display:flex;justify-content:center;gap:clamp(8px,3vw,20px);
+  width:100%;margin-bottom:4px;
+}
+.slot{display:flex;flex-direction:column;align-items:center;gap:10px}
+.slot .pos{
+  font-size:.78rem;color:var(--gold);letter-spacing:.3em;text-indent:.3em;
+}
+
+/* ── result card ── */
+.card{
+  width:100%;margin-top:22px;
+  background:linear-gradient(180deg,var(--ivory) 0%,var(--ivory-dim) 100%);
+  color:var(--ink);
+  border:1px solid var(--paper-line);
+  border-radius:14px;
+  padding:22px 22px 20px;
+  box-shadow:0 10px 26px rgba(92,74,40,.14);
+  animation:rise .5s ease both;
+}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.card{animation:none}}
+.card .eyebrow{
+  font-size:.72rem;letter-spacing:.35em;text-transform:uppercase;
+  color:var(--gold-deep);margin-bottom:6px;
+}
+.card h2{
+  font-size:1.35rem;font-weight:700;letter-spacing:.12em;margin-bottom:2px;
+}
+.card .chips{
+  display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px;
+}
+.card .chips span{
+  font-size:.76rem;letter-spacing:.08em;color:var(--gold-deep);
+  border:1px solid var(--gold-deep);border-radius:999px;
+  padding:3px 10px;background:rgba(201,160,82,.08);
+}
+.card .msg{
+  font-size:.92rem;line-height:1.95;text-align:justify;
+}
+.card .msg p+p{margin-top:.7em}
+.card .task{
+  margin-top:14px;padding:12px 14px;
+  border:1px solid var(--gold-deep);border-radius:10px;
+  font-size:.9rem;line-height:1.8;
+  background:rgba(216,181,106,.1);
+}
+.card .task b{
+  display:block;font-size:.72rem;letter-spacing:.35em;color:var(--gold-deep);
+  margin-bottom:4px;font-weight:600;
+}
+
+/* ── actions ── */
+.actions{margin-top:20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.btn{
+  font-family:inherit;font-size:.9rem;letter-spacing:.25em;text-indent:.25em;
+  color:#fff;background:var(--gold);
+  border:none;border-radius:999px;padding:11px 34px;cursor:pointer;
+  transition:filter .2s;
+}
+.btn:hover{filter:brightness(1.08)}
+.link{
+  font-family:inherit;font-size:.78rem;letter-spacing:.2em;
+  color:var(--mist);background:none;border:none;cursor:pointer;
+  text-decoration:underline;text-underline-offset:4px;
+}
+.link:hover{color:var(--ink)}
+
+
+@media (max-width:480px){
+  body{padding-left:12px;padding-right:12px}
+  .modes button{padding:12px 20px;font-size:.92rem}
+  .stone img{height:clamp(170px,48vw,230px)}
+  .stone.small img{height:clamp(92px,26vw,130px)}
+  .ritual{font-size:.88rem;letter-spacing:.1em;text-indent:.1em}
+  .hint{font-size:.82rem;letter-spacing:.15em;text-indent:.15em}
+  .card{padding:18px 16px 16px;border-radius:12px}
+  .card h2{font-size:1.45rem}
+  .card .chips span{font-size:.8rem;padding:4px 11px}
+  .card .msg{font-size:.98rem;line-height:2.05}
+  .card .task{font-size:.95rem;line-height:1.9;padding:12px 13px}
+}
+footer{
+  margin-top:34px;font-size:.75rem;color:var(--mist);
+  letter-spacing:.15em;text-align:center;line-height:2;
+  opacity:.8;
+}
+
+
+/* ── Mini Runes 追加樣式 ── */
+.qbox{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
+.qlabel{font-size:.8rem;color:var(--gold-deep);letter-spacing:.3em;text-indent:.3em}
+.qwrap{width:100%;position:relative}
+.qwrap textarea{
+  width:100%;min-height:78px;resize:none;
+  font-family:inherit;font-size:.95rem;line-height:1.8;letter-spacing:.04em;
+  color:var(--ink);background:#fbf9f4;
+  border:1px solid var(--paper-line);border-radius:12px;padding:12px 14px 26px;
+  outline:none;transition:border-color .2s;
+}
+.qwrap textarea:focus{border-color:var(--gold)}
+.qwrap .count{
+  position:absolute;right:12px;bottom:8px;font-size:.7rem;color:var(--mist);letter-spacing:.1em;
+}
+.qhint{font-size:.78rem;color:var(--mist);letter-spacing:.12em;text-align:center;line-height:1.9}
+.qline{
+  width:100%;margin:6px 0 14px;padding:10px 14px;text-align:center;
+  font-size:.9rem;line-height:1.8;color:var(--ink-soft);
+  border-top:1px dashed var(--paper-line);border-bottom:1px dashed var(--paper-line);
+}
+.qline b{color:var(--gold-deep);font-weight:600;letter-spacing:.2em;margin-right:6px}
+/* AI panel */
+.ai{
+  width:100%;margin-top:22px;padding:18px 18px 16px;
+  border:1px solid var(--paper-line);border-radius:14px;background:#fbf9f4;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  animation:rise .5s ease both;
+}
+.ai .title{font-size:.78rem;color:var(--gold-deep);letter-spacing:.35em;text-indent:.35em}
+.styles{display:flex;gap:18px;font-size:.85rem;color:var(--ink-soft);letter-spacing:.08em}
+.styles label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.styles input{accent-color:var(--gold)}
+.btn.ghost{
+  color:var(--ink);background:none;border:1px solid var(--ink-soft);
+}
+.btn.ghost:hover{filter:none;border-color:var(--ink);background:rgba(0,0,0,.02)}
+.btn.ghost.done{border-color:var(--gold-deep);color:var(--gold-deep)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.ailinks{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+.ailinks .lab{font-size:.75rem;color:var(--mist);letter-spacing:.15em}
+.ailinks a{
+  font-size:1rem;color:var(--ink);text-decoration:none;letter-spacing:.04em;
+  border-bottom:1px solid transparent;transition:border-color .2s;
+}
+.ailinks a:hover{border-color:var(--gold-deep)}
+.ainote{font-size:.74rem;color:var(--mist);letter-spacing:.08em;text-align:center;line-height:1.9}
+.actions.row{flex-direction:row;justify-content:center;gap:18px;flex-wrap:wrap}
+.toast{
+  position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;font-size:.82rem;letter-spacing:.2em;
+  padding:9px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+}
+.toast.show{opacity:.95;transform:translateX(-50%) translateY(0)}
+.hidden{display:none !important}
+@media (max-width:480px){
+  .styles{font-size:.9rem}
+  .ailinks a{font-size:1.05rem}
+}
+
+
+/* 沿用 Mini Runes v0.6 樣式 — 沉浸式介面優化 */
+:root{
+  --paper:#ffffff;
+  --paper-line:rgba(126,91,43,.2);
+  --ivory:#f7f4ec;
+  --ivory-dim:#efe9dc;
+  --gold:#b68b43;
+  --gold-deep:#84602f;
+  --mist:#8c8273;
+  --ink:#3b342b;
+  --ink-soft:#655c50;
+  --ice:#967141;
+  --panel:rgba(255,252,245,.9);
+  --panel-strong:rgba(255,253,248,.98);
+  --shadow:0 24px 70px rgba(92,68,34,.14);
+  color-scheme:light;
+}
+html{scroll-behavior:smooth}
+body{
+  position:relative;
+  overflow-x:hidden;
+  background:var(--paper); /* 2026-09-08：底色改白，與人生小序一致 */
+  color:var(--ink);
+  padding:max(24px,env(safe-area-inset-top)) 18px calc(38px + env(safe-area-inset-bottom));
+}
+body::before{content:none} /* 2026-09-08：移除紙紋格線，白底不需要 */
+.wrap{position:relative;z-index:1;max-width:760px}
+header{margin-bottom:24px}
+.brand-mark{
+  width:58px;height:58px;margin:0 auto 14px;display:grid;place-items:center;
+  border:1px solid rgba(132,96,47,.35);border-radius:50%;position:relative;
+  color:var(--gold-deep);font-size:1.65rem;background:rgba(255,252,245,.8);
+  box-shadow:0 0 0 7px rgba(182,139,67,.06),0 12px 35px rgba(92,68,34,.13);
+}
+.brand-mark::before,.brand-mark::after{
+  content:"";position:absolute;inset:7px;border:1px solid rgba(150,113,65,.2);
+  transform:rotate(45deg);border-radius:5px;
+}
+.brand-mark::after{inset:14px;transform:rotate(0);border-color:rgba(182,139,67,.2)}
+.brand-mark span{position:relative;z-index:1;text-shadow:0 0 18px rgba(182,139,67,.2)}
+h1{
+  font-size:clamp(1.72rem,6vw,2.35rem);font-weight:600;letter-spacing:.28em;text-indent:.28em;
+  color:var(--ink);text-shadow:0 2px 22px rgba(132,96,47,.09);
+}
+.sub{margin-top:9px;font-size:.78rem;color:var(--mist);letter-spacing:.2em;text-indent:.2em}
+.hairline{width:152px;margin-top:17px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.8}
+.qbox{
+  max-width:640px;padding:clamp(22px,5vw,36px);gap:18px;align-items:stretch;
+  background:linear-gradient(145deg,rgba(255,253,248,.97),rgba(246,239,226,.96));
+  border:1px solid var(--paper-line);border-radius:26px;box-shadow:var(--shadow);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+}
+.step-kicker{
+  display:flex;align-items:center;gap:10px;color:var(--gold);font-size:.74rem;
+  letter-spacing:.24em;text-transform:uppercase;
+}
+.step-kicker::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,rgba(132,96,47,.3),transparent)}
+.step-no{
+  width:28px;height:28px;display:grid;place-items:center;border-radius:50%;
+  border:1px solid rgba(132,96,47,.42);font-size:.68rem;letter-spacing:0;
+}
+.qlabel{font-size:1.12rem;color:var(--ink);font-weight:600;letter-spacing:.12em;text-indent:0}
+.qwrap textarea{
+  min-height:118px;color:var(--ink);background:rgba(255,254,250,.76);
+  border-color:rgba(126,91,43,.22);border-radius:16px;padding:16px 16px 38px;
+  font-size:1rem;line-height:1.8;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.qwrap textarea::placeholder{color:#a69c8e;opacity:1}
+.qwrap textarea:focus{
+  border-color:rgba(132,96,47,.66);background:#fffdf8;
+  box-shadow:0 0 0 4px rgba(182,139,67,.1);
+}
+.qfoot{
+  position:absolute;left:16px;right:14px;bottom:10px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;pointer-events:none;
+}
+.qfoot .tip,.qwrap .count{position:static;font-size:.7rem;color:#8e8476;letter-spacing:.08em}
+.mode-label{font-size:.76rem;color:var(--mist);letter-spacing:.18em;margin-top:2px}
+.modes{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;overflow:visible;
+  border:0;border-radius:0;background:none;
+}
+.modes button{
+  min-height:84px;padding:13px 12px;display:grid;grid-template-columns:44px 1fr;
+  grid-template-rows:auto auto;text-align:left;align-items:center;column-gap:11px;
+  color:var(--ink-soft);background:rgba(255,253,248,.64);border:1px solid rgba(126,91,43,.14);
+  border-radius:15px;letter-spacing:.1em;text-indent:0;transition:.22s ease;
+}
+.modes button:hover{border-color:rgba(132,96,47,.38);transform:translateY(-1px)}
+.modes button.on{
+  color:var(--ink);background:linear-gradient(145deg,rgba(232,213,176,.76),rgba(250,246,237,.92));
+  border-color:rgba(132,96,47,.52);box-shadow:0 0 0 3px rgba(182,139,67,.08);
+}
+.mode-runes{
+  grid-row:1/3;width:44px;height:44px;display:grid;place-items:center;border-radius:12px;
+  background:rgba(150,113,65,.08);color:var(--gold-deep);font-size:1.22rem;letter-spacing:.08em;
+}
+.modes button.on .mode-runes{background:rgba(182,139,67,.14);color:var(--gold-deep)}
+.mode-name{font-weight:700;font-size:.92rem;align-self:end}
+.mode-desc{font-size:.72rem;color:var(--mist);letter-spacing:.08em;align-self:start}
+.qhint{font-size:.8rem;color:var(--mist);letter-spacing:.08em;line-height:1.7;text-align:left}
+.ritual{
+  margin:0;padding:13px 14px;display:flex;align-items:flex-start;gap:11px;text-align:left;
+  color:#735c38;background:rgba(182,139,67,.075);border:1px solid rgba(132,96,47,.15);
+  border-radius:13px;font-size:.83rem;line-height:1.75;letter-spacing:.06em;
+}
+.ritual-mark{flex:0 0 auto;color:var(--gold);font-size:1rem;margin-top:1px}
+.btn{
+  min-height:48px;border-radius:14px;padding:12px 28px;color:#fffaf0;
+  background:linear-gradient(135deg,#b98f4b,#8f672f);font-weight:700;letter-spacing:.16em;
+  box-shadow:0 10px 28px rgba(126,91,43,.2);transition:transform .2s,filter .2s,box-shadow .2s;
+}
+.btn:hover{filter:brightness(1.06);transform:translateY(-1px);box-shadow:0 14px 34px rgba(126,91,43,.24)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible,.link:focus-visible,.modes button:focus-visible,.styles label:has(input:focus-visible),.ailinks a:focus-visible,.deep-toggle:focus-visible{
+  outline:2px solid var(--gold-deep);outline-offset:3px;
+}
+.start-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:2px}
+.start-btn .btn-rune{font-size:1.05rem;color:#fff6e4}
+#drawView{max-width:720px}
+.draw-meta{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
+.draw-meta .label{color:var(--gold);font-size:.74rem;letter-spacing:.2em}
+.draw-progress{
+  min-width:62px;padding:5px 10px;text-align:center;border-radius:999px;
+  border:1px solid rgba(132,96,47,.22);background:rgba(182,139,67,.07);
+  color:var(--gold-deep);font-size:.72rem;letter-spacing:.08em;
+}
+.qline{
+  margin:0 0 22px;padding:13px 16px;text-align:left;color:var(--ink-soft);
+  background:rgba(255,253,248,.7);border:1px solid rgba(126,91,43,.12);border-radius:14px;
+}
+.qline b{display:inline-flex;align-items:center;justify-content:center;margin-right:10px;padding:2px 8px;border-radius:7px;background:rgba(182,139,67,.11)}
+.spread-stage{
+  width:100%;padding:clamp(20px,5vw,34px) 12px 22px;position:relative;
+  background:radial-gradient(circle at 50% 44%,rgba(182,139,67,.11),transparent 50%);
+  border-top:1px solid rgba(126,91,43,.09);border-bottom:1px solid rgba(126,91,43,.09);
+}
+.spread-stage::before{
+  content:"";position:absolute;left:50%;top:50%;width:min(78vw,430px);aspect-ratio:1;
+  transform:translate(-50%,-48%);border:1px solid rgba(132,96,47,.1);border-radius:50%;
+  box-shadow:0 0 0 22px rgba(182,139,67,.025);pointer-events:none;
+}
+.spreadRow{position:relative;z-index:1;margin-bottom:8px;gap:clamp(5px,2vw,18px)}
+.slot{gap:11px;min-width:0}
+.slot .pos{color:var(--gold);font-size:.76rem;letter-spacing:.22em;text-indent:.22em}
+.stone{position:relative}
+.stone::after{
+  content:"";position:absolute;left:13%;right:13%;bottom:-9px;height:14px;border-radius:50%;
+  background:rgba(86,61,29,.22);filter:blur(8px);transition:opacity .35s,transform .35s;
+}
+.stone.flipped::after{opacity:.62;transform:scale(.88)}
+.stone img{
+  height:clamp(168px,38vw,260px);
+  filter:drop-shadow(0 11px 17px rgba(86,61,29,.24)) drop-shadow(0 0 12px rgba(182,139,67,.1));
+}
+.stone.small img{height:clamp(104px,24vw,158px)}
+.stone:focus-visible{outline-color:var(--ice)}
+.stone:disabled{cursor:default}
+.hint{position:relative;z-index:1;margin-top:15px;color:var(--mist);font-size:.82rem;letter-spacing:.13em}
+#cards{width:100%;display:grid;gap:14px;margin-top:18px}
+.card{
+  margin-top:0;padding:22px 22px 20px;color:var(--ink);
+  background:linear-gradient(145deg,var(--panel-strong),rgba(246,239,226,.98));
+  border:1px solid rgba(126,91,43,.16);border-radius:20px;box-shadow:0 16px 46px rgba(92,68,34,.12);
+}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.card .eyebrow{font-size:.69rem;color:var(--gold);letter-spacing:.2em;margin-bottom:7px}
+.card h2{font-size:1.45rem;letter-spacing:.1em;margin:0}
+.card .en-name{font-size:.78rem;color:var(--mist);letter-spacing:.12em;margin-top:4px}
+.card-seal{
+  flex:0 0 auto;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;
+  border:1px solid rgba(132,96,47,.2);color:var(--gold-deep);background:rgba(182,139,67,.07);font-size:1.02rem;
+}
+.card .chips{margin:15px 0 0;gap:7px}
+.card .chips span{
+  color:#76582f;border-color:rgba(132,96,47,.24);background:rgba(182,139,67,.075);
+  font-size:.76rem;padding:4px 10px;
+}
+.card .task{
+  margin-top:16px;padding:13px 14px;border:1px solid rgba(132,96,47,.15);
+  background:rgba(182,139,67,.06);font-size:.92rem;line-height:1.8;border-radius:13px;color:var(--ink-soft);
+}
+.card .task b{color:var(--gold-deep);letter-spacing:.22em;margin-bottom:3px}
+.deep-toggle{margin-top:13px;border-top:1px solid rgba(126,91,43,.1)}
+.deep-toggle summary{
+  padding:13px 2px 2px;display:flex;align-items:center;justify-content:space-between;
+  color:var(--mist);font-size:.8rem;letter-spacing:.12em;cursor:pointer;list-style:none;
+}
+.deep-toggle summary::-webkit-details-marker{display:none}
+.deep-toggle summary::after{content:"＋";font-size:1rem;color:var(--gold);transition:transform .2s}
+.deep-toggle[open] summary::after{transform:rotate(45deg)}
+.deep-copy{padding:13px 2px 2px;color:#5d554b;font-size:.9rem;line-height:1.95;text-align:justify}
+.deep-copy p+p{margin-top:.85em}
+.ai{
+  margin-top:18px;padding:22px;align-items:stretch;gap:15px;
+  background:linear-gradient(145deg,rgba(255,253,248,.98),rgba(240,228,207,.96));
+  border-color:rgba(132,96,47,.18);border-radius:20px;
+}
+.ai-head{display:flex;gap:12px;align-items:flex-start}
+.ai-icon{
+  flex:0 0 auto;width:38px;height:38px;display:grid;place-items:center;border-radius:11px;
+  background:rgba(182,139,67,.09);color:var(--gold-deep);border:1px solid rgba(132,96,47,.16);
+}
+.ai .title{color:var(--ink);font-size:.88rem;letter-spacing:.16em;text-indent:0;margin-bottom:4px;font-weight:700}
+.ai-sub{font-size:.76rem;color:var(--mist);line-height:1.65;letter-spacing:.04em}
+.styles{gap:8px;flex-wrap:wrap}
+.styles label{
+  flex:1;min-width:130px;padding:10px 12px;border:1px solid rgba(126,91,43,.13);
+  border-radius:11px;background:rgba(255,253,248,.58);font-size:.82rem;color:var(--ink-soft);
+}
+.styles label:has(input:checked){border-color:rgba(132,96,47,.42);background:rgba(182,139,67,.08);color:var(--ink)}
+.btn.ghost{width:100%;color:var(--gold-deep);border-color:rgba(132,96,47,.42);background:rgba(182,139,67,.08);box-shadow:none}
+.btn.ghost:hover{background:rgba(182,139,67,.13);border-color:rgba(132,96,47,.66)}
+.btn.ghost.done{border-color:rgba(99,111,71,.5);color:#667044;background:rgba(126,139,84,.08)}
+.ailinks{gap:8px}
+.ailinks .lab{width:100%;text-align:center;font-size:.7rem}
+.ailinks a{
+  min-width:90px;padding:8px 12px;text-align:center;border:1px solid rgba(126,91,43,.13);
+  border-radius:10px;background:rgba(255,253,248,.64);font-size:.82rem;color:var(--ink-soft);
+}
+.ailinks a:hover{border-color:rgba(132,96,47,.36);color:var(--gold-deep)}
+.ainote{font-size:.72rem;color:#8d8375}
+.actions.row{width:100%;margin-top:22px;gap:12px}
+.actions.row .btn{min-width:160px}
+.link{min-height:44px;padding:8px 14px;color:var(--mist);text-underline-offset:5px}
+.link:hover{color:var(--ink)}
+.toast{
+  z-index:20;bottom:calc(24px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);
+  color:#fffaf0;background:#493b2c;font-weight:700;box-shadow:0 12px 38px rgba(92,68,34,.28);
+}
+footer{margin-top:34px;color:#8f8578;font-size:.72rem;letter-spacing:.12em}
+@media (max-width:640px){
+  body{padding-left:12px;padding-right:12px}
+  header{margin-bottom:18px}
+  .brand-mark{width:50px;height:50px;margin-bottom:11px}
+  .qbox{padding:20px 16px;border-radius:21px;gap:16px}
+  .qwrap textarea{min-height:110px;padding:14px 13px 38px}
+  .qfoot{left:13px;right:12px}.qfoot .tip{display:none}
+  .modes{gap:8px}.modes button{min-height:76px;grid-template-columns:36px 1fr;padding:10px 9px;column-gap:9px}
+  .mode-runes{width:36px;height:40px;font-size:1.02rem}.mode-name{font-size:.86rem}.mode-desc{font-size:.68rem}
+  .ritual{font-size:.79rem;padding:12px}.draw-meta{padding:0 4px}.qline{margin-bottom:16px}
+  .spread-stage{padding-left:4px;padding-right:4px}.stone.small img{height:clamp(96px,28vw,126px)}
+  #cards{gap:11px;margin-top:14px}.card{padding:18px 15px 16px;border-radius:17px}.card h2{font-size:1.35rem}
+  .card .chips span{font-size:.75rem}.deep-copy{font-size:.91rem;line-height:1.9}.ai{padding:18px 15px;border-radius:17px}
+  .styles{font-size:.84rem}.actions.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .actions.row .btn{min-width:0;padding-left:14px;padding-right:14px}.link{font-size:.78rem}
+}
+@media (max-width:365px){
+  .modes button{grid-template-columns:1fr;text-align:center}.mode-runes{display:none}.mode-name,.mode-desc{align-self:center}
+  .stone.small img{height:92px}.slot .pos{font-size:.7rem;letter-spacing:.13em}.card-seal{width:36px;height:36px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.modes button,.btn,.deep-toggle summary::after{transition:none}}
+
+
+/* ── 請我喝杯咖啡（Buy Me a Coffee） ── */
+.coffee{
+  width:100%;margin-top:4px;padding-top:14px;border-top:1px dashed rgba(126,91,43,.16);
+  display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;
+}
+.coffee .ask{font-size:.8rem;color:var(--ink-soft);letter-spacing:.06em;line-height:1.7}
+.coffee-btn{
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+  padding:9px 18px;border-radius:12px;font-size:.84rem;letter-spacing:.08em;font-weight:700;
+  color:var(--gold-deep);background:rgba(182,139,67,.1);border:1px solid rgba(132,96,47,.3);
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.coffee-btn:hover{background:rgba(182,139,67,.18);border-color:rgba(132,96,47,.5);transform:translateY(-1px)}
+.coffee-btn:focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px}
+.coffee-btn .cup{font-size:1rem}
+.coffee .fine{font-size:.68rem;color:var(--mist);letter-spacing:.06em}
+footer a.coffee-foot{color:var(--gold-deep);text-decoration:none;border-bottom:1px solid rgba(132,96,47,.3)}
+footer a.coffee-foot:hover{border-bottom-color:var(--gold-deep)}
+
+
+</style>
+<style>
+/* ── Mini Meihua 專屬樣式（其餘沿用 Mini Runes） ── */
+.modes{grid-template-columns:repeat(3,1fr)}
+.modes button{
+  grid-template-columns:1fr;grid-template-rows:auto auto auto;justify-items:center;
+  text-align:center;row-gap:5px;min-height:108px;padding:13px 8px;
+}
+.mode-glyph{
+  width:40px;height:40px;display:grid;place-items:center;border-radius:12px;
+  background:rgba(150,113,65,.08);color:var(--gold-deep);font-size:1.08rem;font-weight:600;letter-spacing:0;
+}
+.modes button.on .mode-glyph{background:rgba(182,139,67,.16)}
+.modes button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.modes .mode-name,.modes .mode-desc{align-self:center}
+
+.panel{width:100%}
+.nowline{
+  padding:12px 14px;border:1px dashed rgba(126,91,43,.24);border-radius:13px;
+  font-size:.86rem;line-height:1.75;color:var(--ink-soft);letter-spacing:.06em;
+}
+.nowline b{color:var(--gold-deep);font-weight:600;letter-spacing:.2em;margin-right:8px}
+.numrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.numrow label{display:flex;flex-direction:column;gap:6px;font-size:.74rem;color:var(--mist);letter-spacing:.12em;text-align:center}
+.numrow input{
+  width:100%;min-height:48px;font-family:inherit;font-size:1.02rem;text-align:center;color:var(--ink);
+  background:rgba(255,254,250,.76);border:1px solid rgba(126,91,43,.22);border-radius:12px;outline:none;
+  transition:border-color .2s,box-shadow .2s;-moz-appearance:textfield;
+}
+.numrow input::-webkit-outer-spin-button,.numrow input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.numrow input::placeholder{color:#b3a999;font-size:.82rem}
+.numrow input:focus{border-color:rgba(132,96,47,.66);box-shadow:0 0 0 4px rgba(182,139,67,.1)}
+.panel .qhint{margin-top:8px}
+.err{font-size:.82rem;line-height:1.7;color:#8f4a30;letter-spacing:.04em;text-align:center}
+
+/* 卦象 */
+.hexslot{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.hexslot .pos{color:var(--gold);font-size:.76rem;letter-spacing:.22em;text-indent:.22em}
+.hex{
+  width:clamp(74px,22vw,120px);display:flex;flex-direction:column;gap:clamp(6px,1.7vw,9px);
+  padding:clamp(14px,3.4vw,20px) clamp(11px,2.8vw,17px);
+  background:linear-gradient(145deg,rgba(255,253,248,.97),rgba(246,239,226,.95));
+  border:1px solid rgba(126,91,43,.16);border-radius:14px;
+  box-shadow:0 11px 26px rgba(86,61,29,.13),0 0 12px rgba(182,139,67,.06);
+}
+.hexslot.main .hex{border-color:rgba(132,96,47,.34)}
+.yao{
+  position:relative;display:flex;gap:24%;height:clamp(7px,2vw,10px);
+  opacity:0;transform:translateY(6px);transition:opacity .38s ease,transform .38s ease;
+}
+.yao.on{opacity:1;transform:none}
+.yao span{flex:1;border-radius:2px;background:linear-gradient(90deg,#5b4a35,#3b342b)}
+.yao.moving span{background:linear-gradient(90deg,#c9a052,#8f672f)}
+.yao.moving::after{
+  content:"";position:absolute;top:50%;right:calc(-1 * clamp(8px,2.1vw,12px));
+  width:5px;height:5px;border-radius:50%;background:var(--gold);transform:translateY(-50%);
+}
+.hex-label{text-align:center;opacity:0;transition:opacity .45s ease}
+.hexslot.done .hex-label{opacity:1}
+.hex-name{font-size:.96rem;font-weight:700;letter-spacing:.1em;color:var(--ink)}
+.hex-theme{margin-top:3px;font-size:.72rem;color:var(--mist);letter-spacing:.08em}
+.hexslot.side .hex{transition:opacity .45s ease}
+.hexslot.side:not(.done) .hex{opacity:.25}
+
+/* 卦象說明卡 */
+.card-seal.gua{font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2",var(--serif);font-size:1.3rem}
+.task .yaoci{display:block;font-size:.98rem;letter-spacing:.06em;color:var(--ink)}
+.task .src{display:inline-block;margin-top:6px;font-size:.74rem;color:var(--gold-deep);text-decoration:none;border-bottom:1px solid rgba(132,96,47,.3)}
+.task .src:hover{border-bottom-color:var(--gold-deep)}
+.deep-copy .kv+.kv{margin-top:1em}
+.deep-copy .kv b{display:block;font-size:.74rem;color:var(--gold-deep);letter-spacing:.2em;margin-bottom:2px;font-weight:600}
+.deep-copy .kv a{color:var(--gold-deep);font-size:.78rem}
+.deep-copy .fine{font-size:.76rem;color:var(--mist);line-height:1.8}
+
+/* 起卦約定 */
+footer details.rules{margin-top:6px}
+footer details.rules summary{cursor:pointer;list-style:none;text-decoration:underline;text-underline-offset:4px}
+footer details.rules summary::-webkit-details-marker{display:none}
+footer details.rules p{
+  max-width:520px;margin:10px auto 0;text-align:left;line-height:1.9;letter-spacing:.04em;
+  font-size:.74rem;color:var(--ink-soft);
+}
+
+@media (max-width:640px){
+  .modes button{min-height:98px;padding:11px 5px}
+  .mode-glyph{width:36px;height:36px;font-size:1rem}
+  .modes .mode-desc{font-size:.66rem;letter-spacing:.04em}
+  .hex-name{font-size:.88rem;letter-spacing:.06em}
+  .hex-theme{font-size:.68rem}
+}
+@media (max-width:365px){
+  .mode-glyph{display:none}.modes button{min-height:72px}
+  .hex-name{font-size:.82rem;letter-spacing:.02em}
+}
+@media (prefers-reduced-motion:reduce){
+  .yao,.hex-label,.hexslot.side .hex{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand-mark" aria-hidden="true"><span>梅</span></div>
+    <h1>Mini Meihua</h1>
+    <div class="sub">梅花易數・一事一問</div>
+    <div class="hairline"></div>
+  </header>
+
+  <!-- ① 問題與起卦方式 -->
+  <section id="askView" class="qbox">
+    <div class="step-kicker"><span class="step-no">01</span><span>寫下此刻的問題</span></div>
+    <label class="qlabel" for="question">你想問的事</label>
+    <div class="qwrap">
+      <textarea id="question" maxlength="100" placeholder="例：這次看屋，接下來雙方的互動會怎麼走？" aria-describedby="questionHelp"></textarea>
+      <div class="qfoot">
+        <span class="tip" id="questionHelp">一事一問，寫得具體，解讀會更聚焦</span>
+        <span class="count"><span id="qcount">0</span> / 100</span>
+      </div>
+    </div>
+    <div class="mode-label">選擇起卦方式</div>
+    <div class="modes" role="radiogroup" aria-label="起卦方式">
+      <button id="modeTime" type="button" role="radio" aria-checked="true" tabindex="0" class="on" data-m="time">
+        <span class="mode-glyph" aria-hidden="true">時</span>
+        <span class="mode-name">此刻起卦</span>
+        <span class="mode-desc">以年月日時</span>
+      </button>
+      <button id="modeRandom" type="button" role="radio" aria-checked="false" tabindex="-1" data-m="random">
+        <span class="mode-glyph" aria-hidden="true">隨</span>
+        <span class="mode-name">隨機起卦</span>
+        <span class="mode-desc">系統抽三數</span>
+      </button>
+      <button id="modeNumbers" type="button" role="radio" aria-checked="false" tabindex="-1" data-m="numbers">
+        <span class="mode-glyph" aria-hidden="true">數</span>
+        <span class="mode-name">數字起卦</span>
+        <span class="mode-desc">自己給三數</span>
+      </button>
+    </div>
+    <div class="panel" id="panelTime">
+      <div class="nowline" id="nowLine" aria-live="polite"><b>此刻</b><span id="nowText">—</span></div>
+      <div class="qhint">以台灣時間、按下起卦的那一刻為準。</div>
+    </div>
+    <div class="panel hidden" id="panelRandom">
+      <div class="qhint">起卦時由系統抽出三個 1–960 的數字，依三數法排出卦象。</div>
+    </div>
+    <div class="panel hidden" id="panelNumbers">
+      <div class="numrow">
+        <label>上卦數<input id="numUpper" type="number" min="1" max="999999999" step="1" inputmode="numeric" placeholder="請填數字"></label>
+        <label>下卦數<input id="numLower" type="number" min="1" max="999999999" step="1" inputmode="numeric" placeholder="請填數字"></label>
+        <label>動爻數<input id="numMoving" type="number" min="1" max="999999999" step="1" inputmode="numeric" placeholder="請填數字"></label>
+      </div>
+      <div class="qhint">可用當下浮現的數字、看見的門牌或物件數量。前兩數除以 8 取卦，第三數除以 6 取動爻。</div>
+    </div>
+    <div class="ritual"><span class="ritual-mark" aria-hidden="true">✦</span><span>「不動不占，不因事不占。」心裡真的有事、念頭清楚時，再起卦；同一件事，一卦就好。</span></div>
+    <div class="err hidden" id="formError" role="alert"></div>
+    <button class="btn start-btn" type="button" id="startBtn"><span class="btn-rune" aria-hidden="true">❀</span><span>起卦</span></button>
+  </section>
+
+  <!-- ② 卦象與解讀 -->
+  <section id="drawView" class="hidden" style="display:flex;flex-direction:column;align-items:center;width:100%">
+    <div class="draw-meta"><span class="label">02・卦象展開</span><span class="draw-progress" id="methodTag"></span></div>
+    <div class="qline" id="qline"></div>
+    <div class="spread-stage">
+      <div class="spreadRow" id="spreadRow"></div>
+      <div class="hint" id="drawHint" aria-live="polite"></div>
+    </div>
+
+    <div class="ai hidden" id="aiPanel">
+      <div class="ai-head">
+        <div class="ai-icon" aria-hidden="true">✦</div>
+        <div><div class="title">把這一卦整理成完整解讀</div><div class="ai-sub">選擇語氣並複製提示，再貼到你慣用的 AI。</div></div>
+      </div>
+      <div class="styles" role="radiogroup" aria-label="AI 回文風格">
+        <label><input type="radio" name="style" value="warm" checked><span>溫柔陪伴</span></label>
+        <label><input type="radio" name="style" value="plain"><span>平實中立</span></label>
+      </div>
+      <button class="btn ghost" type="button" id="copyBtn">複製完整解讀提示</button>
+      <div class="ailinks">
+        <span class="lab">複製後貼到</span>
+        <a href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>
+        <a href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
+        <a href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a>
+      </div>
+      <div class="ainote" id="aiNote">提示會包含本次問題、起卦演算、本互變卦、動爻爻辭與體用，不會加入其他個人資料。</div>
+      <div class="coffee">
+        <div class="ask">這個小工具有陪到你嗎？</div>
+        <a class="coffee-btn" href="https://buymeacoffee.com/nakaiwenp" target="_blank" rel="noopener">
+          <span class="cup" aria-hidden="true">☕</span><span>請 Nakai 喝杯咖啡</span>
+        </a>
+        <div class="fine">以美元計價，一杯約 NT$160・讓小工具維持免費</div>
+      </div>
+    </div>
+
+    <!-- 卦象說明卡：預設顯示。若要與 Mini Runes 一樣只留 AI 面板，在 #cards 加上 class="hidden" 即可；資料仍完整進 AI 提示 -->
+    <div id="cards" aria-live="polite" aria-label="卦象說明"></div>
+
+    <div class="actions row">
+      <button class="btn" type="button" id="newBtn">問另一件事</button>
+      <button class="link" type="button" id="backBtn">返回修改問題</button>
+    </div>
+  </section>
+
+  <footer>
+    <span>卦象是一面鏡子，決定仍在你手中・結果僅供參考</span><br>
+    <a class="coffee-foot" href="https://buymeacoffee.com/nakaiwenp" target="_blank" rel="noopener">☕ 請 Nakai 喝杯咖啡</a>
+    <details class="rules">
+      <summary>起卦約定</summary>
+      <p><b>此刻起卦</b>：台灣時間（UTC+8），00:00 換日；取農曆年支數＋月數＋日數除以 8 為上卦，再加時辰數除以 8 為下卦、除以 6 為動爻。閏月沿用原月數，分鐘只用來判定時辰，不採真太陽時。支援 1900–2100 年。<br>
+      <b>數字／隨機起卦</b>：第一數除以 8 取上卦，第二數除以 8 取下卦，第三數除以 6 取動爻；整除時卦取 8、爻取 6。隨機數為 1–960（8 與 6 的公倍數），每個餘數機率相同。<br>
+      <b>互卦與體用</b>：互卦取本卦第 2–4 爻為下互、第 3–5 爻為上互，純乾純坤亦同。含動爻的三爻卦為用，不動的為體；變卦沿用本卦的體。<br>
+      八卦序：乾 1、兌 2、離 3、震 4、巽 5、坎 6、艮 7、坤 8。爻辭依《周易》原文（維基文庫），保留「无」等異體字。</p>
+    </details>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite">已複製，貼到 AI 即可</div>
+
+<script>
+/* ── 起卦引擎：梅花觀象 engine.js v1.3.1 原檔（未更動） ── */
+(function (root) {
+  'use strict';
+  const VERSION = '1.3.1';
+  const TRIGRAMS = [null,
+    {id:1,name:'乾',image:'天',element:'金',lines:[1,1,1]},
+    {id:2,name:'兌',image:'澤',element:'金',lines:[1,1,0]},
+    {id:3,name:'離',image:'火',element:'火',lines:[1,0,1]},
+    {id:4,name:'震',image:'雷',element:'木',lines:[1,0,0]},
+    {id:5,name:'巽',image:'風',element:'木',lines:[0,1,1]},
+    {id:6,name:'坎',image:'水',element:'水',lines:[0,1,0]},
+    {id:7,name:'艮',image:'山',element:'土',lines:[0,0,1]},
+    {id:8,name:'坤',image:'地',element:'土',lines:[0,0,0]}
+  ];
+  const MATRIX = [
+    [1,10,13,25,44,6,33,12], [43,58,49,17,28,47,31,45],
+    [14,38,30,21,50,64,56,35], [34,54,55,51,32,40,62,16],
+    [9,61,37,42,57,59,53,20], [5,60,63,3,48,29,39,8],
+    [26,41,22,27,18,4,52,23], [11,19,36,24,46,7,15,2]
+  ];
+  // 卦意與觀察問題是本工具的白話整理，不冒充經文或個案預測。
+  const HEX = [null,
+    ['乾','主動與持續','誰正在推動這件事？行動是否有明確方向？'],
+    ['坤','承接與配合','目前需要承接什麼？配合的範圍是否清楚？'],
+    ['屯','開端與阻滯','起步卡在哪一個具體環節？需要哪些支援？'],
+    ['蒙','探索與釐清','哪些資訊還不清楚？誰能提供可核對的答案？'],
+    ['需','等待與準備','正在等待什麼條件？等待期間能先準備什麼？'],
+    ['訟','分歧與爭議','雙方對哪些條件的理解不同？有沒有明確文字？'],
+    ['師','組織與紀律','誰負責決策、誰負責執行？安排是否一致？'],
+    ['比','親近與結合','共同的需求是什麼？合作是否有實際行動？'],
+    ['小畜','小幅累積','哪些小進展正在累積？哪個關鍵仍未到位？'],
+    ['履','分寸與步驟','互動中有哪些界線？下一步是否合乎程序？'],
+    ['泰','交流與相通','溝通是否順暢？雙方是否能回應彼此的需要？'],
+    ['否','隔閡與停滯','訊息在哪裡中斷？是否存在尚未說出的分歧？'],
+    ['同人','共識與連結','雙方在哪些事情上有共同立場？共識能否落實？'],
+    ['大有','資源與承擔','可運用的資源有哪些？責任是否跟得上？'],
+    ['謙','分寸與調整','是否能清楚表達需求，同時保留協商空間？'],
+    ['豫','準備與動員','期待是否已有準備支撐？大家的步調是否一致？'],
+    ['隨','回應與調適','正在跟隨誰的節奏？調整後是否仍符合原意？'],
+    ['蠱','整頓與修復','哪些舊問題需要先處理？責任與修復方式是否清楚？'],
+    ['臨','接近與接觸','雙方是否更靠近核心問題？接觸是否帶來新資訊？'],
+    ['觀','觀察與理解','目前看見哪些事實？哪些仍只是自己的推測？'],
+    ['噬嗑','處理阻礙','最需要處理的障礙是什麼？是否有清楚的解法？'],
+    ['賁','呈現與實質','外在呈現是否反映實際內容？有什麼需要核對？'],
+    ['剝','減損與鬆動','哪些條件正在鬆動？核心部分是否仍穩定？'],
+    ['復','回返與重啟','是否出現重新聯絡或再次嘗試？與之前有何不同？'],
+    ['無妄','真實與自然','是否依據已知事實行動？有沒有額外的期待投射？'],
+    ['大畜','積累與節制','目前累積了什麼？是否具備進一步行動的條件？'],
+    ['頤','供給與言語','彼此真正需要什麼？言語是否有實際內容支撐？'],
+    ['大過','負荷與失衡','是否有人承擔過多？哪一部分最需要調整？'],
+    ['坎','重複的難處','同樣的障礙是否反覆出現？有哪些尚未釐清的風險？'],
+    ['離','明晰與依附','哪些資訊更清楚了？事情依賴什麼條件維持？'],
+    ['咸','感應與互動','雙方是否互有回應？回應停在感受還是已有行動？'],
+    ['恆','持續與穩定','言行是否前後一致？是否願意持續投入？'],
+    ['遯','保留與退讓','是否出現保留、暫緩或退一步的說法？原因是什麼？'],
+    ['大壯','力量與分寸','推進的力道是否合適？有沒有超出對方可接受的範圍？'],
+    ['晉','進展與顯現','是否出現可核對的進展？下一步是否變得清楚？'],
+    ['明夷','收斂與保護','哪些想法尚未表達？目前需要保留什麼空間？'],
+    ['家人','角色與內部共識','參與者如何分工？內部意見是否已取得一致？'],
+    ['睽','差異與分歧','彼此重視的事情有何不同？有沒有交集？'],
+    ['蹇','阻礙與求助','目前的難處在哪裡？是否需要換方法或尋求協助？'],
+    ['解','鬆動與化解','哪個障礙正在解除？後續是否有相應行動？'],
+    ['損','取捨與減量','各方願意放下什麼？取捨是否對等且明確？'],
+    ['益','增益與互助','是否出現實際支持？資源或條件有沒有改善？'],
+    ['夬','決斷與表明','哪些事情需要說清楚？決定是否已有依據？'],
+    ['姤','相遇與新因素','接觸帶來哪些新資訊？有沒有預期之外的條件？'],
+    ['萃','聚合與協調','參與者是否聚焦同一目標？還需要誰加入討論？'],
+    ['升','漸進與累積','事情是否逐步推進？每一步是否有實際承接？'],
+    ['困','受限與耐心','是資源、時間還是溝通受限？限制有沒有改變？'],
+    ['井','根本與供給','核心需求是否得到滿足？長期可用的條件是什麼？'],
+    ['革','改變與重訂','哪些條件需要重新約定？改變是否得到認同？'],
+    ['鼎','整合與更新','現有資源如何重新組合？新的安排是否可行？'],
+    ['震','觸動與反應','是否出現突然的消息或變動？各方如何回應？'],
+    ['艮','暫停與界線','哪一部分需要暫停確認？停止與繼續的條件是什麼？'],
+    ['漸','循序與成熟','進展是否依序展開？是否給足確認與準備的時間？'],
+    ['歸妹','次序與配合','角色、次序或期待是否不一致？哪些條件尚未齊備？'],
+    ['豐','資訊與盛況','資訊是否足夠且清楚？熱絡之中有沒有遺漏細節？'],
+    ['旅','暫時與適應','這段互動是暫時接觸還是長期安排？界線是否清楚？'],
+    ['巽','漸入與溝通','訊息是否逐步傳達？對方有沒有真正理解？'],
+    ['兌','交流與表達','對話是否坦誠？愉快的互動是否形成具體共識？'],
+    ['渙','分散與疏通','分散的意見能否重新聚焦？哪些阻隔開始鬆開？'],
+    ['節','規範與限度','預算、時間與範圍是否明確？限制是否可以共同接受？'],
+    ['中孚','信任與一致','承諾與行動是否一致？信任有什麼具體依據？'],
+    ['小過','細節與適度','細節是否影響進展？是否需要小幅而非大幅調整？'],
+    ['既濟','完成與維持','哪些部分已完成？是否仍有收尾或確認事項？'],
+    ['未濟','未完與銜接','距離完成還差哪一步？前後環節是否接得上？']
+  ];
+  // 《周易》經文：依 sources/zhouyi-lines.json 整理，按卦序與自下而上爻位索引。
+  const LINE_TEXTS = [null,
+    ["潛龍勿用。", "見龍在田，利見大人。", "君子終日乾乾，夕惕若；厲，无咎。", "或躍在淵，无咎。", "飛龍在天，利見大人。", "亢龍，有悔。"], // 1 乾
+    ["履霜，堅冰至。", "直方大，不習无不利。", "含章，可貞。或從王事，无成有終。", "括囊，无咎无譽。", "黃裳，元吉。", "龍戰于野，其血玄黃。"], // 2 坤
+    ["磐桓，利居貞，利建侯。", "屯如邅如，乘馬班如，匪寇婚媾，女子貞不字，十年乃字。", "即鹿无虞，惟入于林中，君子幾不如舍，往吝。", "乘馬班如，求婚媾，往，吉无不利。", "屯其膏；小貞吉，大貞凶。", "乘馬班如，泣血漣如。"], // 3 屯
+    ["發蒙，利用刑人，用說桎梏，以往吝。", "包蒙吉，納婦吉，子克家。", "勿用取女，見金夫，不有躬，无攸利。", "困蒙，吝。", "童蒙，吉。", "擊蒙，不利為寇，利禦寇。"], // 4 蒙
+    ["需于郊，利用恆，无咎。", "需于沙，小有言，終吉。", "需于泥，致寇至。", "需于血，出自穴。", "需于酒食，貞吉。", "入于穴，有不速之客三人來，敬之終吉。"], // 5 需
+    ["不永所事，小有言，終吉。", "不克訟，歸而逋，其邑人三百戶无眚。", "食舊德，貞厲，終吉。或從王事，无成。", "不克訟，復即命渝，安貞吉。", "訟，元吉。", "或錫之鞶帶，終朝三褫之。"], // 6 訟
+    ["師出以律，否臧，凶。", "在師中吉，无咎；王三錫命。", "師或輿尸，凶。", "師左次，无咎。", "田有禽，利執言，无咎。長子帥師，弟子輿尸，貞凶。", "大君有命，開國承家，小人勿用。"], // 7 師
+    ["有孚，比之，无咎。有孚盈缶，終來有它，吉。", "比之自內，貞吉。", "比之匪人。", "外比之，貞吉。", "顯比。王用三驅，失前禽，邑人不誡，吉。", "比之无首，凶。"], // 8 比
+    ["復自道，何其咎，吉。", "牽復，吉。", "輿說輻，夫妻反目。", "有孚，血去惕出，无咎。", "有孚攣如，富以其鄰。", "既雨既處，尚德載，婦貞厲，月幾望，君子征凶。"], // 9 小畜
+    ["素履，往无咎。", "履道坦坦，幽人貞吉。", "眇能視，跛能履，履虎尾，咥人，凶。武人為于大君。", "履虎尾，愬愬終吉。", "夬履，貞厲。", "視履考祥，其旋元吉。"], // 10 履
+    ["拔茅茹以其彙，征吉。", "包荒。用馮河，不遐遺；朋亡。得尚于中行。", "无平不陂，无往不復，艱貞无咎。勿恤其孚，于食有福。", "翩翩，不富以其鄰；不戒以孚。", "帝乙歸妹，以祉，元吉。", "城復于隍，勿用師，自邑告命，貞吝。"], // 11 泰
+    ["拔茅茹以其彙，貞吉。亨。", "包承，小人吉，大人否。亨。", "包羞。", "有命，无咎，疇離祉。", "休否，大人吉。其亡其亡，繫于苞桑。", "傾否，先否後喜。"], // 12 否
+    ["同人于門，無咎。", "同人于宗，吝。", "伏戎于莽，升其高陵，三歲不興。", "乘其墉，弗克，攻吉。", "同人，先號啕而后笑。大師克相遇。", "同人于郊，無悔。"], // 13 同人
+    ["无交害，匪咎，艱則无咎。", "大車以載，有攸往，无咎。", "公用亨于天子，小人弗克。", "匪其彭，无咎。", "厥孚交如，威如；吉。", "自天佑之，吉无不利。"], // 14 大有
+    ["謙謙君子，用涉大川，吉。", "鳴謙，貞吉。", "勞謙君子，有終吉。", "无不利，撝謙。", "不富，以其鄰，利用侵伐，无不利。", "鳴謙，利用行師，征邑國。"], // 15 謙
+    ["鳴豫，凶。", "介于石，不終日，貞吉。", "盱豫，悔。遲有悔。", "由豫，大有得。勿疑。朋盍簪。", "貞疾，恆不死。", "冥豫，成有渝，无咎。"], // 16 豫
+    ["官有渝，貞吉。出門交有功。", "系小子，失丈夫。", "系丈夫，失小子。隨，有求得利，居貞。", "隨有獲，貞凶。有孚在道，以明，何咎。", "孚于嘉，吉。", "拘系之，乃從維之。王用亨于西山。"], // 17 隨
+    ["幹父之蠱，有子考，无咎，厲終吉。", "幹母之蠱，不可貞。", "幹父之蠱，小有悔，无大咎。", "裕父之蠱，往見吝。", "幹父之蠱，用譽。", "不事王侯，高尚其事。"], // 18 蠱
+    ["咸臨，貞吉。", "咸臨，吉无不利。", "甘臨，无攸利。既憂之，无咎。", "至臨，无咎。", "知臨，大君之宜，吉。", "敦臨，吉无咎。"], // 19 臨
+    ["童觀，小人无咎，君子吝。", "窺觀，利女貞。", "觀我生，進退。", "觀國之光，利用賓于王。", "觀我生，君子无咎。", "觀其生，君子无咎。"], // 20 觀
+    ["屨校滅趾，无咎。", "噬膚滅鼻，无咎。", "噬臘肉，遇毒；小吝，无咎。", "噬乾胏，得金矢，利艱貞，吉。", "噬乾肉，得黃金，貞厲，无咎。", "何校滅耳，凶。"], // 21 噬嗑
+    ["賁其趾，舍車而徒。", "賁其須。", "賁如濡如，永貞吉。", "賁如皤如，白馬翰如，匪寇婚媾。", "賁於丘園，束帛戔戔，吝，終吉。", "白賁，无咎。"], // 22 賁
+    ["剝牀以足，蔑貞凶。", "剝牀以辨，蔑貞凶。", "剝之，无咎。", "剝牀以膚，凶。", "貫魚，以宮人寵，无不利。", "碩果不食，君子得輿，小人剝廬。"], // 23 剝
+    ["不復遠，无袛悔，元吉。", "休復，吉。", "頻復，厲无咎。", "中行獨復。", "敦復，无悔。", "迷復，凶，有災眚。用行師，終有大敗，以其國君，凶；至于十年，不克征。"], // 24 復
+    ["无妄，往吉。", "不耕穫，不菑畬，則利有攸往。", "无妄之災，或系之牛，行人之得，邑人之災。", "可貞，无咎。", "无妄之疾，勿藥有喜。", "无妄，行有眚，无攸利。"], // 25 无妄
+    ["有厲利已。", "輿說輹。", "良馬逐，利艱貞。曰閑輿衛，利有攸往。", "童牛之牿，元吉。", "豶豕之牙，吉。", "何天之衢，亨。"], // 26 大畜
+    ["舍爾靈龜，觀我朵頤，凶。", "顛頤，拂經，于丘頤，征凶。", "拂頤，貞凶，十年勿用，无攸利。", "顛頤吉，虎視眈眈，其欲逐逐，无咎。", "拂經，居貞吉，不可涉大川。", "由頤，厲吉，利涉大川。"], // 27 頤
+    ["藉用白茅，无咎。", "枯楊生稊，老夫得其女妻，无不利。", "棟橈，凶。", "棟隆，吉。有它吝。", "枯楊生華，老婦得其士夫，无咎无譽。", "過涉滅頂，凶，无咎。"], // 28 大過
+    ["習坎，入于坎窞，凶。", "坎有險，求小得。", "來之坎坎，險且枕，入于坎窞，勿用。", "樽酒簋貳，用缶，納約自牖，終无咎。", "坎不盈，祗既平，无咎。", "係用徽纆，寘于叢棘，三歲不得，凶。"], // 29 坎
+    ["履錯然，敬之无咎。", "黃離，元吉。", "日昃之離，不鼓缶而歌，則大耋之嗟，凶。", "突如其來如，焚如，死如，棄如。", "出涕沱若，戚嗟若，吉。", "王用出征，有嘉折首，獲匪其醜，无咎。"], // 30 離
+    ["咸其拇。", "咸其腓，凶，居吉。", "咸其股，執其隨，往吝。", "貞吉悔亡，憧憧往來，朋從爾思。", "咸其脢，无悔。", "咸其輔，頰，舌。"], // 31 咸
+    ["浚恆，貞凶，无攸利。", "悔亡。", "不恆其德，或承之羞，貞吝。", "田无禽。", "恆其德，貞，婦人吉，夫子凶。", "振恆，凶。"], // 32 恒
+    ["遯尾，厲，勿用有攸往。", "執之用黃牛之革，莫之勝說。", "系遯，有疾厲，畜臣妾吉。", "好遯君子吉，小人否。", "嘉遯，貞吉。", "肥遯，无不利。"], // 33 遯
+    ["壯于趾，征凶，有孚。", "貞吉。", "小人用壯，君子用罔，貞厲。羝羊觸藩，羸其角。", "貞吉悔亡，藩決不羸，壯于大輿之輹。", "喪羊于易，无悔。", "羝羊觸藩，不能退，不能遂，无攸利，艱則吉。"], // 34 大壯
+    ["晉如，摧如，貞吉。罔孚，裕无咎。", "晉如，愁如，貞吉。受茲介福，于其王母。", "眾允，悔亡。", "晉如鼫鼠，貞厲。", "悔亡，失得勿恤，往吉无不利。", "晉其角，維用伐邑，厲吉无咎，貞吝。"], // 35 晉
+    ["明夷于飛，垂其翼。君子于行，三日不食，有攸往，主人有言。", "明夷，夷于左股，用拯馬壯，吉。", "明夷于南狩，得其大首，不可疾貞。", "入于左腹，獲明夷之心，于出門庭。", "箕子之明夷，利貞。", "不明晦，初登于天，后入于地。"], // 36 明夷
+    ["閑有家，悔亡。", "无攸遂，在中饋，貞吉。", "家人嗃嗃，悔厲吉；婦子嘻嘻，終吝。", "富家，大吉。", "王假有家，勿恤。吉。", "有孚威如，終吉。"], // 37 家人
+    ["悔亡，喪馬勿逐，自復；見惡人无咎。", "遇主于巷，无咎。", "見輿曳，其牛掣，其人天且劓，无初有終。", "睽孤，遇元夫，交孚，厲无咎。", "悔亡，厥宗噬膚，往何咎。", "睽孤， 見豕負涂，載鬼一車， 先張之弧，后說之弧，匪寇婚媾，往遇雨則吉。"], // 38 睽
+    ["往蹇，來譽。", "王臣蹇蹇，匪躬之故。", "往蹇來反。", "往蹇來連。", "大蹇朋來。", "往蹇來碩，吉；利見大人。"], // 39 蹇
+    ["无咎。", "田獲三狐，得黃矢，貞吉。", "負且乘，致寇至，貞吝。", "解而拇，朋至斯孚。", "君子維有解，吉；有孚于小人。", "公用射隼，于高墉之上，獲之，无不利。"], // 40 解
+    ["已事遄往，无咎，酌損之。", "利貞，征凶，弗損益之。", "三人行，則損一人；一人行，則得其友。", "損其疾，使遄有喜，无咎。", "或益之，十朋之龜弗克違，元吉。", "弗損益之，无咎，貞吉，利有攸往，得臣无家。"], // 41 損
+    ["利用為大作，元吉，无咎。", "或益之，十朋之龜弗克違，永貞吉。王用享于帝，吉。", "益之用凶事，无咎。有孚中行，告公用圭。", "中行，告公從。利用為依遷國。", "有孚惠心，勿問元吉。有孚惠我德。", "莫益之，或擊之，立心勿恆，凶。"], // 42 益
+    ["壯于前趾，往不勝為咎。", "惕號，莫夜有戎，勿恤。", "壯于頄，有凶。君子夬夬，獨行遇雨，若濡有慍，无咎。", "臀无膚，其行次且。牽羊悔亡，聞言不信。", "莧陸夬夬，中行无咎。", "无號，終有凶。"], // 43 夬
+    ["系于金柅，貞吉，有攸往，見凶，羸豕孚踟躅。", "包有魚，无咎，不利賓。", "臀无膚，其行次且，厲，无大咎。", "包无魚，起凶。", "以杞包瓜，含章，有隕自天。", "姤其角，吝，无咎。"], // 44 姤
+    ["有孚不終，乃亂乃萃，若號一握為笑，勿恤，往无咎。", "引吉，无咎，孚乃利用禴。", "萃如，嗟如，无攸利，往无咎，小吝。", "大吉，无咎。", "萃有位，无咎。匪孚，元永貞，悔亡。", "齎咨涕洟，无咎。"], // 45 萃
+    ["允升，大吉。", "孚乃利用禴，无咎。", "升虛邑。", "王用亨于岐山，吉无咎。", "貞吉，升階。", "冥升，利于不息之貞。"], // 46 升
+    ["臀困于株木，入于幽谷，三歲不覿。", "困于酒食，朱紱方來，利用亨祀，征凶，无咎。", "困于石，據于蒺藜，入于其宮，不見其妻，凶。", "來徐徐，困于金車，吝，有終。", "劓刖，困于赤紱，乃徐有說，利用祭祀。", "困于葛藟，于臲卼，曰動悔。有悔，征吉。"], // 47 困
+    ["井泥不食，舊井无禽。", "井谷射鮒，瓮敝漏。", "井渫不食，為我心惻，可用汲，王明，并受其福。", "井甃，无咎。", "井冽，寒泉食。", "井收勿幕，有孚元吉。"], // 48 井
+    ["鞏用黃牛之革。", "巳日乃革之，征吉，无咎。", "征凶，貞厲，革言三就，有孚。", "悔亡，有孚改命，吉。", "大人虎變，未占有孚。", "君子豹變，小人革面，征凶，居貞吉。"], // 49 革
+    ["鼎顛趾，利出否，得妾以其子，无咎。", "鼎有實，我仇有疾，不我能即，吉。", "鼎耳革，其行塞，雉膏不食，方雨虧悔，終吉。", "鼎折足，覆公餗，其形渥，凶。", "鼎黃耳金鉉，利貞。", "鼎玉鉉，大吉，无不利。"], // 50 鼎
+    ["震來虩虩，后笑言啞啞，吉。", "震來厲，億喪貝，躋于九陵，勿逐，七日得。", "震蘇蘇，震行无眚。", "震遂泥。", "震往來厲，億无喪，有事。", "震索索，視矍矍，征凶。震不于其躬，于其鄰，无咎。婚媾有言。"], // 51 震
+    ["艮其趾，无咎，利永貞。", "艮其腓，不拯其隨，其心不快。", "艮其限，列其夤，厲薰心。", "艮其身，无咎。", "艮其輔，言有序，悔亡。", "敦艮，吉。"], // 52 艮
+    ["鴻漸于干，小子厲，有言，无咎。", "鴻漸于磐，飲食衎衎，吉。", "鴻漸于陸，夫征不復，婦孕不育，凶；利禦寇。", "鴻漸于木，或得其桷，无咎。", "鴻漸于陵，婦三歲不孕，終莫之勝，吉。", "鴻漸于陸，其羽可用為儀，吉。"], // 53 漸
+    ["歸妹以娣，跛能履，征吉。", "眇能視，利幽人之貞。", "歸妹以須，反歸以娣。", "歸妹愆期，遲歸有時。", "帝乙歸妹，其君之袂，不如其娣之袂良，月幾望，吉。", "女承筐无實，士刲羊无血，无攸利。"], // 54 歸妹
+    ["遇其配主，雖旬无咎，往有尚。", "豐其蔀，日中見斗，往得疑疾，有孚發若，吉。", "豐其沛，日中見沫，折其右肱，无咎。", "豐其蔀，日中見斗，遇其夷主，吉。", "來章，有慶譽，吉。", "豐其屋，蔀其家，窺其戶，闃其无人，三歲不觌，凶。"], // 55 豐
+    ["旅瑣瑣，斯其所取災。", "旅即次，懷其資，得童僕貞。", "旅焚其次，喪其童僕，貞厲。", "旅于處，得其資斧，我心不快。", "射雉一矢亡，終以譽命。", "鳥焚其巢，旅人先笑后號咷。喪牛于易，凶。"], // 56 旅
+    ["進退，利武人之貞。", "巽在牀下，用史巫紛若，吉无咎。", "頻巽，吝。", "悔亡，田獲三品。", "貞吉悔亡，无不利。无初有終，先庚三日，后庚三日，吉。", "巽在牀下，喪其資斧，貞凶。"], // 57 巽
+    ["和兌，吉。", "孚兌，吉，悔亡。", "來兌，凶。", "商兌，未寧，介疾有喜。", "孚于剝，有厲。", "引兌。"], // 58 兌
+    ["用拯馬壯，吉。", "渙奔其机，悔亡。", "渙其躬，无悔。", "渙其群，元吉。渙有丘，匪夷所思。", "渙汗其大號，渙王居，无咎。", "渙其血，去逖出，无咎。"], // 59 渙
+    ["不出戶庭，无咎。", "不出門庭，凶。", "不節若，則嗟若，无咎。", "安節，亨。", "甘節，吉；往有尚。", "苦節，貞凶，悔亡。"], // 60 節
+    ["虞吉，有他不燕。", "鳴鶴在陰，其子和之，我有好爵，吾與爾靡之。", "得敵，或鼓或罷，或泣或歌。", "月几望，馬匹亡，无咎。", "有孚攣如，无咎。", "翰音登于天，貞凶。"], // 61 中孚
+    ["飛鳥以凶。", "過其祖，遇其妣；不及其君，遇其臣；无咎。", "弗過防之，從或戕之，凶。", "无咎，弗過遇之。往厲必戒，勿用永貞。", "密云不雨，自我西郊，公弋取彼在穴。", "弗遇過之，飛鳥離之，凶，是謂災眚。"], // 62 小過
+    ["曳其輪，濡其尾，无咎。", "婦喪其茀，勿逐，七日得。", "高宗伐鬼方，三年克之，小人勿用。", "繻有衣袽，終日戒。", "東鄰殺牛，不如西鄰之禴祭，實受其福。", "濡其首，厲。"], // 63 既濟
+    ["濡其尾，吝。", "曳其輪，貞吉。", "未濟，征凶，利涉大川。", "貞吉，悔亡，震用伐鬼方，三年有賞于大國。", "貞吉，无悔，君子之光，有孚，吉。", "有孚于飲酒，无咎，濡其首，有孚失是。"] // 64 未濟
+  ];
+  const STEMS = '甲乙丙丁戊己庚辛壬癸';
+  const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
+  const GEN = {木:'火',火:'土',土:'金',金:'水',水:'木'};
+  const CTRL = {木:'土',土:'水',水:'火',火:'金',金:'木'};
+  const mod = (n,m) => ((n%m)+m)%m;
+  const remainder = (n,m) => mod(n,m)||m;
+  const trigFromLines = lines => TRIGRAMS.slice(1).find(t=>t.lines.join('')===lines.join(''));
+  const pad = n=>String(n).padStart(2,'0');
+  function hexagram(upper, lower) {
+    const u=TRIGRAMS[upper],l=TRIGRAMS[lower];
+    if(!u||!l)throw new Error('卦數須為 1 至 8。');
+    const id=MATRIX[upper-1][lower-1],d=HEX[id];
+    return {id,name:d[0],fullName:upper===lower?d[0]+'為'+u.image:u.image+l.image+d[0],theme:d[1],question:d[2],upper:u,lower:l,lines:[...l.lines,...u.lines],symbol:String.fromCodePoint(0x4DC0+id-1)};
+  }
+  function lineCitation(h, position) {
+    if(!Number.isInteger(position)||position<1||position>6)throw new Error('爻位須為 1 至 6。');
+    const yinYang=h.lines[position-1]?'九':'六';
+    const label=position===1?'初'+yinYang:position===6?'上'+yinYang:yinYang+['','一','二','三','四','五','六'][position];
+    const sourceName=({25:'无妄',32:'恒'})[h.id]||h.name;
+    return {label,text:LINE_TEXTS[h.id][position-1],source:'https://zh.wikisource.org/wiki/周易/'+encodeURIComponent(sourceName)};
+  }
+  function relation(body, other) {
+    if(body===other)return {type:'比和',detail:'體用同氣',meaning:'需求與節奏有相互配合的象徵。',observe:'雙方是否能就同一件事達成具體共識？'};
+    if(GEN[other]===body)return {type:'用生體',detail:other+'生'+body,meaning:'外在支持、條件有助於我方的象徵。',observe:'是否出現主動回應、資源支持或實際承諾？'};
+    if(GEN[body]===other)return {type:'體生用',detail:body+'生'+other,meaning:'我方較多投入、付出或配合的象徵。',observe:'投入是否得到回應？時間與心力是否主要由我方承擔？'};
+    if(CTRL[other]===body)return {type:'用剋體',detail:other+'剋'+body,meaning:'外在條件帶來限制或協商壓力的象徵。',observe:'是否出現具體歧見、附加條件或推進上的阻礙？'};
+    return {type:'體剋用',detail:body+'剋'+other,meaning:'我方需要主動處理、協調與推進的象徵。',observe:'是否需要我方提出方案？阻礙能否透過行動解決？'};
+  }
+  function build(upper, lower, moving) {
+    if(!Number.isInteger(moving)||moving<1||moving>6)throw new Error('動爻須為 1 至 6。');
+    const base=hexagram(upper,lower),bits=base.lines.slice();bits[moving-1]^=1;
+    const changed=hexagram(trigFromLines(bits.slice(3)).id,trigFromLines(bits.slice(0,3)).id);
+    // 一律取本卦 2–4 爻、3–5 爻。純乾純坤亦取本卦互體；此約定會隨輸出註明。
+    const mutual=hexagram(trigFromLines(base.lines.slice(2,5)).id,trigFromLines(base.lines.slice(1,4)).id);
+    const bodyPosition=moving<=3?'upper':'lower',usePosition=moving<=3?'lower':'upper';
+    const body=base[bodyPosition],use=base[usePosition],changedUse=changed[usePosition];
+    const yinYang=base.lines[moving-1]?'九':'六';
+    const movingName=moving===1?'初'+yinYang:moving===6?'上'+yinYang:yinYang+['','一','二','三','四','五','六'][moving];
+    return {base,mutual,changed,moving,movingName,movingText:lineCitation(base,moving),changedText:lineCitation(changed,moving),body,use,bodyPosition,usePosition,changedUse,initialRelation:relation(body.element,use.element),changedRelation:relation(body.element,changedUse.element),mutualRelations:[relation(body.element,mutual.upper.element),relation(body.element,mutual.lower.element)]};
+  }
+  function dateParts(date,time) {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^\d{2}:\d{2}$/.test(time))throw new Error('請填寫完整的日期與時間。');
+    const [y,m,d]=date.split('-').map(Number),[h,min]=time.split(':').map(Number);
+    const value=new Date(Date.UTC(y,m-1,d,12));
+    if(value.getUTCFullYear()!==y||value.getUTCMonth()!==m-1||value.getUTCDate()!==d||h>23||min>59)throw new Error('日期或時間無效。');
+    if(date<'1900-01-31'||date>'2100-12-31')throw new Error('支援國曆 1900-01-31 至 2100-12-31。');
+    return {y,m,d,h,min,value};
+  }
+  function lunarInfo(date,time,rollover='midnight') {
+    if(!['midnight','zi'].includes(rollover))throw new Error('換日方式無效。');
+    const p=dateParts(date,time),shifted=rollover==='zi'&&p.h===23;
+    if(shifted)p.value.setUTCDate(p.value.getUTCDate()+1);
+    const formatter=new Intl.DateTimeFormat('en-u-ca-chinese',{timeZone:'UTC',year:'numeric',month:'numeric',day:'numeric'});
+    if(formatter.resolvedOptions().calendar!=='chinese')throw new Error('此瀏覽器不支援農曆換算，請使用新版 Chrome、Safari 或 Firefox，或改用數字起卦。');
+    const parts=Object.fromEntries(formatter.formatToParts(p.value).map(x=>[x.type,x.value]));
+    const year=Number(parts.relatedYear),month=parseInt(parts.month,10),day=Number(parts.day),leap=/bis|leap/i.test(parts.month);
+    if(!Number.isInteger(year)||!Number.isInteger(month)||!Number.isInteger(day)||month<1||month>12||day<1||day>30)throw new Error('無法取得正確農曆資料，請改用數字起卦。');
+    const branchIndex=mod(year-4,12),hourIndex=Math.floor((p.h+1)/2)%12;
+    return {year,month,day,leap,yearName:STEMS[mod(year-4,10)]+BRANCHES[branchIndex],yearNumber:branchIndex+1,hourName:BRANCHES[hourIndex],hourNumber:hourIndex+1,shifted,effectiveDate:p.value.toISOString().slice(0,10),label:STEMS[mod(year-4,10)]+BRANCHES[branchIndex]+'年・'+(leap?'閏':'')+month+'月'+day+'日・'+BRANCHES[hourIndex]+'時'};
+  }
+  function fromTime(date,time,rollover='midnight') {
+    const lunar=lunarInfo(date,time,rollover),sum=lunar.yearNumber+lunar.month+lunar.day,total=sum+lunar.hourNumber;
+    return {...build(remainder(sum,8),remainder(total,8),remainder(total,6)),method:'time',source:{date,time,rollover,lunar},calculation:[{label:'上卦',text:`${lunar.yearNumber}＋${lunar.month}＋${lunar.day}＝${sum}；除以 8 餘 ${sum%8}${sum%8===0?'，取 8':''}`},{label:'下卦',text:`${sum}＋${lunar.hourNumber}＝${total}；除以 8 餘 ${total%8}${total%8===0?'，取 8':''}`},{label:'動爻',text:`${total} 除以 6 餘 ${total%6}${total%6===0?'，取 6':''}`} ]};
+  }
+  function fromNumbers(a,b,c) {
+    const nums=[a,b,c];
+    if(nums.some(n=>!Number.isSafeInteger(n)||n<1||n>999999999))throw new Error('請輸入 1 至 999999999 的整數。');
+    return {...build(remainder(a,8),remainder(b,8),remainder(c,6)),method:'numbers',source:{numbers:nums},calculation:nums.map((n,i)=>({label:['上卦','下卦','動爻'][i],text:`${n} 除以 ${i===2?6:8} 餘 ${n%(i===2?6:8)}${n%(i===2?6:8)===0?'，取 '+(i===2?6:8):''}`}))};
+  }
+  function taipeiNow() {
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+    return {date:`${parts.year}-${parts.month}-${parts.day}`,time:`${parts.hour}:${parts.minute}`};
+  }
+  function calculate(input) {
+    if(!input||typeof input!=='object')throw new Error('起卦資料無效。');
+    if(input.method==='time')return fromTime(input.date,input.time,input.rollover);
+    if(['numbers','random'].includes(input.method)&&Array.isArray(input.numbers)&&input.numbers.length===3){const result=fromNumbers(...input.numbers);if(input.method==='random'&&input.numbers.some(n=>n>960))throw new Error('隨機起卦數字須為 1 至 960。');return {...result,method:input.method};}
+    throw new Error('起卦方式無效。');
+  }
+  function textReport(record) {
+    const r=calculate(record.input),timeSource=r.method==='time'?`指定時間：${r.source.date} ${r.source.time}（台灣 UTC+8）\n農曆：${r.source.lunar.label}\n年支數 ${r.source.lunar.yearNumber}；月數 ${r.source.lunar.month}；日數 ${r.source.lunar.day}；時數 ${r.source.lunar.hourNumber}\n換日：${r.source.rollover==='zi'?'23:00 子初換日':'00:00 午夜換日'}${r.source.lunar.shifted?'（已按次日農曆計算）':''}\n閏月：沿用原月數；不把分鐘另行加數。`:`${r.method==='random'?'系統隨機產生；範圍 1–960。\n':''}三數：${r.source.numbers.join('、')}\n第一數取上卦，第二數取下卦，第三數直接除以 6 取動爻，不另加時辰。`;
+    const lineDetail=[5,4,3,2,1,0].map(i=>`第 ${i+1} 爻：${r.base.lines[i]?'陽':'陰'}${i+1===r.moving?'（動，變'+(r.base.lines[i]?'陰':'陽')+'）':''}`).join('\n');
+    return `【梅花易數解盤資料｜小六太乙・梅花觀象 v${VERSION}】\n\n【問事】\n${record.question||'未填寫'}\n\n【起卦前已知的實際狀況】\n${record.context||'未填寫'}\n\n【起卦方法】\n${r.method==='time'?'年月日時起卦':r.method==='random'?'隨機起卦（系統產生三數，第三數獨立取動爻）':'三數起卦（第三數獨立取動爻）'}\n${timeSource}\n紀錄建立時間：${record.createdAt||'未提供'}\n\n【演算】\n${r.calculation.map(x=>x.label+'：'+x.text).join('\n')}\n\n【卦象】\n本卦：第 ${r.base.id} 卦・${r.base.fullName}（上${r.base.upper.name}下${r.base.lower.name}）\n動爻：${r.movingName}，自下往上第 ${r.moving} 爻\n互卦：第 ${r.mutual.id} 卦・${r.mutual.fullName}（上${r.mutual.upper.name}下${r.mutual.lower.name}）\n變卦：第 ${r.changed.id} 卦・${r.changed.fullName}（上${r.changed.upper.name}下${r.changed.lower.name}）\n互卦約定：本卦第 2–4 爻為下互，第 3–5 爻為上互；純乾純坤也依本卦取互體。\n\n【動爻爻辭・《周易》原文】\n本卦動爻｜${r.base.fullName}・${r.movingText.label}：${r.movingText.text}\n原典：${r.movingText.source}\n變卦同位爻（對照）｜${r.changed.fullName}・${r.changedText.label}：${r.changedText.text}\n原典：${r.changedText.source}\n變卦同位爻指陰陽變化後的同一爻位，並非另起一個動爻。\n\n【本卦六爻・由上至下】\n${lineDetail}\n\n【體用】\n本卦不動的三爻卦為體，含動爻的三爻卦為用；變卦沿用本卦體卦。\n體：${r.bodyPosition==='upper'?'上':'下'}卦${r.body.name}，五行${r.body.element}\n用：${r.usePosition==='upper'?'上':'下'}卦${r.use.name}，五行${r.use.element}\n本卦：${r.initialRelation.type}（${r.initialRelation.detail}）\n互卦上卦${r.mutual.upper.name}${r.mutual.upper.element}對體：${r.mutualRelations[0].type}\n互卦下卦${r.mutual.lower.name}${r.mutual.lower.element}對體：${r.mutualRelations[1].type}\n變用：${r.changedUse.name}${r.changedUse.element}；對本卦體：${r.changedRelation.type}（${r.changedRelation.detail}）\n\n【事前想觀察的重點】\n${record.expected||'尚未填寫'}\n\n【事後實際發展】\n${record.actual||'尚未回填'}\n進度：${record.status||'待觀察'}\n對照結果：${record.match||'尚未對照'}\n\n【請協助解讀】\n請用繁體中文，以梅花易數體用生剋為主要脈絡，綜合本卦、互卦、變卦與動爻解讀；若有實際時間，再考量季節旺衰。區分「已知事實」「卦象推論」「待觀察事項」，說明支持與不支持的線索，不編造對方心理或成交機率。若引用卦爻辭，請核對原典，不把白話摘要當成原文。請提出 3 個具體觀察點；若已有事後紀錄，也列出對得上、對不上與資訊不足的地方，不事後硬套。我的用途是搭配實際狀態觀察，請聚焦解盤與核對。`;
+  }
+  const api={VERSION,TRIGRAMS,HEX,MATRIX,hexagram,build,lineCitation,relation,lunarInfo,fromTime,fromNumbers,taipeiNow,calculate,textReport};
+  root.Meihua=api;
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
+</script>
+<script>
+/* ============================================================
+   Mini Meihua · 小六太乙  v0.1
+   由「梅花觀象」v1.3.1 改作的可內嵌簡約版；介面沿用 Mini Runes。
+   - 起卦引擎（上一段 script）為 engine.js v1.3.1 原檔，未做任何更動。
+   - 拿掉：PWA、觀察紀錄／回填、JSON 匯出匯入、子初換日選項、指定日期。
+   - 保留：此刻（年月日時）／隨機／數字三種起卦，本互變卦、動爻爻辭、體用。
+   - 開機自測（L-008）：錨點取自原引擎實算，農曆另經 lunar-javascript 交叉比對。
+   ============================================================ */
+const M = window.Meihua;
+const $ = id => document.getElementById(id);
+const SOURCE = "小六太乙 · Mini Meihua";
+const METHOD = { time:"此刻起卦", random:"隨機起卦", numbers:"數字起卦" };
+
+function esc(t){ return String(t).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function scrollToEl(el){
+  if(!el) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "start"});
+}
+/* 960 為 8、6 的公倍數；拒絕取樣讓每個餘數等機率（與原工具相同） */
+function randomNumbers(){
+  const limit = Math.floor(4294967296/960)*960, w = new Uint32Array(1);
+  return Array.from({length:3}, ()=>{ do{ crypto.getRandomValues(w); }while(w[0] >= limit); return w[0]%960+1; });
+}
+
+/* ── AI 解讀提示（純函式，開機自測會呼叫） ── */
+function buildPrompt(opts){
+  const r = opts.r, q = (opts.question || "").trim(), warm = opts.style !== "plain";
+  const L = [];
+  const hx = h => `第 ${h.id} 卦・${h.fullName}（上${h.upper.name}下${h.lower.name}）`;
+  L.push("我想透過梅花易數，陪自己看一件事。");
+  L.push("【來源】" + SOURCE + "（起卦引擎：梅花觀象 v" + M.VERSION + "）· " + (opts.date || ""));
+  L.push("【我想問的事】" + (q ? q : "（未填）請以起卦當下我心裡最掛念的事來讀，不要替我編造具體事件。"));
+  L.push("");
+  L.push("【起卦方式】" + METHOD[r.method]);
+  if(r.method === "time"){
+    L.push("時間：" + r.source.date + " " + r.source.time + "（台灣 UTC+8，00:00 換日）");
+    L.push("農曆：" + r.source.lunar.label + "；年支數 " + r.source.lunar.yearNumber + "、月數 " + r.source.lunar.month + "、日數 " + r.source.lunar.day + "、時數 " + r.source.lunar.hourNumber);
+  }else{
+    L.push((r.method === "random" ? "系統隨機產生（1–960）" : "我給的數字") + "：" + r.source.numbers.join("、") + "；第三數獨立除以 6 取動爻");
+  }
+  r.calculation.forEach(c=>L.push(c.label + "：" + c.text));
+  L.push("");
+  L.push("【卦象】");
+  L.push("本卦：" + hx(r.base));
+  L.push("動爻：" + r.movingName + "（自下往上第 " + r.moving + " 爻）");
+  L.push("互卦：" + hx(r.mutual) + "；取本卦第 2–4、3–5 爻");
+  L.push("變卦：" + hx(r.changed));
+  L.push("");
+  L.push("【動爻爻辭・《周易》原文】");
+  L.push("本卦動爻｜" + r.base.fullName + "・" + r.movingText.label + "：" + r.movingText.text);
+  L.push("變卦同位爻（對照，不是另一個動爻）｜" + r.changed.fullName + "・" + r.changedText.label + "：" + r.changedText.text);
+  L.push("");
+  L.push("【體用】本卦不動的三爻卦為體，含動爻的為用；變卦沿用本卦的體。");
+  L.push("體：" + (r.bodyPosition==="upper"?"上":"下") + "卦" + r.body.name + "・五行" + r.body.element + "；用：" + (r.usePosition==="upper"?"上":"下") + "卦" + r.use.name + "・五行" + r.use.element);
+  L.push("本卦體用：" + r.initialRelation.type + "（" + r.initialRelation.detail + "）");
+  L.push("互卦上" + r.mutual.upper.name + r.mutual.upper.element + "對體：" + r.mutualRelations[0].type + "；互卦下" + r.mutual.lower.name + r.mutual.lower.element + "對體：" + r.mutualRelations[1].type);
+  L.push("變用" + r.changedUse.name + r.changedUse.element + "對體：" + r.changedRelation.type + "（" + r.changedRelation.detail + "）");
+  L.push("");
+  L.push("【小六太乙白話線索】（工具整理的觀察方向，不是經文）");
+  L.push(r.base.name + "卦・" + r.base.theme + "：" + r.base.question);
+  L.push(r.initialRelation.type + "：" + r.initialRelation.meaning + r.initialRelation.observe);
+  L.push("");
+  L.push("【請你這樣做】");
+  L.push("- 以梅花易數「體用生剋」為主軸，綜合本卦（事情的開端）、互卦（過程）、變卦（走向）與動爻來讀" + (r.method === "time" ? "；可參考起卦當下的季節旺衰" : "") + "。");
+  L.push("- 引用卦爻辭以上面的《周易》原文為準，不要把白話線索當成經文，也不要另外引入其他占法。");
+  L.push("- 分清楚「已知事實」「卦象推論」「待觀察事項」，不編造他人心理，也不給成功機率。");
+  if(warm){
+    L.push("- 語氣像溫柔的陪伴，不恐嚇。爻辭裡的「凶、厲、吝、悔」等字眼，請讀成提醒與調整的方向，不是判決。");
+  }else{
+    L.push("- 平實說明即可，不需要安慰語氣；但同樣把爻辭裡的「凶、厲、吝、悔」讀成提醒，不寫成判決。");
+  }
+  L.push("- 不下宿命結論、不預測疾病或災禍、不替我做決定。");
+  L.push("- 結尾請給我 3 個接下來可以留意的具體觀察點，以及今天就能做的一件小事。");
+  return L.join("\n");
+}
+
+/* ── 開機自測（L-008） ──
+   ENGINE_OK：卦序、卦畫、數字起卦、爻辭索引、提示組裝；不過 → 整組鎖定不起卦。
+   TIME_OK  ：農曆換算與時間起卦；不過（或瀏覽器不支援農曆）→ 只停用「此刻起卦」。
+   期望值為固定常數：卦序依《周易》通行本；起卦結果取自原引擎 v1.3.1 實算；
+   農曆另以 lunar-javascript 逐項核對一致（2026-09-28）。 */
+const ENGINE_OK = (function(){
+  try{
+    /* ① 卦序（上卦, 下卦, 期望卦序）——獨立於 MATRIX 的通行本常數 */
+    const seq = [[1,1,1],[8,8,2],[6,4,3],[7,6,4],[6,1,5],[1,6,6],[5,1,9],[1,2,10],[8,1,11],[1,8,12],[8,7,15],[7,8,23],
+                 [6,6,29],[3,3,30],[4,6,40],[7,2,41],[5,4,42],[2,1,43],[1,5,44],[2,6,47],[4,4,51],[7,7,52],[5,5,57],[2,2,58],[6,3,63],[3,6,64]];
+    const okSeq = seq.every(([u,l,id])=>M.hexagram(u,l).id === id);
+    /* ①-b 64 格須恰為 1–64 的排列：任何單格改錯都會撞號 */
+    const all = []; for(let u=1;u<=8;u++) for(let l=1;l<=8;l++) all.push(M.hexagram(u,l).id);
+    const okPerm = all.slice().sort((x,y)=>x-y).every((v,i)=>v===i+1);
+    /* ①-c 八純卦卦名＝經卦名 */
+    const okPure = [1,2,3,4,5,6,7,8].every(k=>M.hexagram(k,k).name === M.TRIGRAMS[k].name);
+    /* ② 八卦卦畫（由下而上） */
+    const lines = {1:"111",2:"110",3:"101",4:"100",5:"011",6:"010",7:"001",8:"000"};
+    const okTri = Object.keys(lines).every(k=>M.TRIGRAMS[k].lines.join("") === lines[k]);
+    /* ③ 數字起卦：[三數, 本, 互, 變, 動爻, 本卦體用] */
+    const nums = [
+      [[1,1,1],1,1,44,1,"比和"], [[8,8,6],2,2,23,6,"比和"], [[6,4,5],3,23,24,5,"用生體"],
+      [[3,6,2],64,63,35,2,"用剋體"], [[123,456,789],35,39,56,3,"體生用"], [[960,960,960],2,2,23,6,"比和"]
+    ];
+    const okNum = nums.every(([n,b,m,c,mv,rel])=>{
+      const r = M.fromNumbers(...n);
+      return r.base.id===b && r.mutual.id===m && r.changed.id===c && r.moving===mv && r.initialRelation.type===rel;
+    });
+    /* ④ 爻辭索引 */
+    const a = M.fromNumbers(1,1,1), b = M.fromNumbers(3,6,2), c = M.fromNumbers(8,8,6);
+    const okYao = a.movingText.label==="初九" && a.movingText.text==="潛龍勿用。"
+      && b.movingText.label==="九二" && b.movingText.text==="曳其輪，貞吉。"
+      && b.changedText.text==="晉如，愁如，貞吉。受茲介福，于其王母。"
+      && c.movingText.label==="上六" && c.movingText.text==="龍戰于野，其血玄黃。";
+    /* ⑤ 提示組裝 */
+    const r = M.calculate({method:"numbers", numbers:[6,4,5]});
+    const p = buildPrompt({r, question:"自測問題", style:"warm", date:"2026/01/01"});
+    const okWarm = ["自測問題","水雷屯","山地剝","地雷復","九五","屯其膏","用生體","體用生剋","不預測疾病","讀成提醒","3 個"].every(s=>p.indexOf(s)!==-1);
+    const p2 = buildPrompt({r: M.calculate({method:"random", numbers:[1,2,3]}), question:"", style:"plain", date:"2026/01/01"});
+    const okPlain = ["（未填）","隨機起卦","平實說明","1、2、3"].every(s=>p2.indexOf(s)!==-1) && p2.indexOf("溫柔的陪伴")===-1 && p2.indexOf("季節旺衰")===-1;
+    const ok = okSeq && okPerm && okPure && okTri && okNum && okYao && okWarm && okPlain;
+    if(!ok) console.error("Mini Meihua 引擎自測未通過", {okSeq, okPerm, okPure, okTri, okNum, okYao, okWarm, okPlain});
+    return ok;
+  }catch(e){ console.error("Mini Meihua 引擎自測例外", e); return false; }
+})();
+const TIME_OK = (function(){
+  try{
+    const cases = [
+      ["2023-03-22","12:00","midnight","癸卯年・閏2月1日・午時",4,24,23,2],
+      ["2025-01-28","23:30","midnight","甲辰年・12月29日・子時",39,64,15,5],
+      ["2025-01-28","23:30","zi","乙巳年・1月1日・子時",11,54,19,3],
+      ["2024-02-10","00:10","midnight","甲辰年・1月1日・子時",23,2,4,2],
+      ["1900-01-31","06:00","midnight","庚子年・1月1日・卯時",56,28,30,1],
+      ["2100-12-31","23:30","midnight","庚申年・12月1日・子時",39,64,15,5]
+    ];
+    const ok = cases.every(([d,t,ro,label,b,m,c,mv])=>{
+      const r = M.fromTime(d,t,ro);
+      return r.source.lunar.label===label && r.base.id===b && r.mutual.id===m && r.changed.id===c && r.moving===mv;
+    });
+    if(!ok) console.error("Mini Meihua 農曆／時間起卦自測未通過");
+    return ok;
+  }catch(e){ console.error("Mini Meihua 時間起卦不可用", e); return false; }
+})();
+
+/* ── 剪貼簿雙保險 ── */
+async function copyText(t){
+  try{
+    if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(t); return true; }
+  }catch(e){}
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = t; ta.setAttribute("readonly","");
+    ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length);
+    const ok = document.execCommand("copy"); document.body.removeChild(ta); return ok;
+  }catch(e){ return false; }
+}
+let toastTimer = null;
+function toast(msg){
+  const el = $("toast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.classList.remove("show"), 1800);
+}
+
+/* ── 狀態 ── */
+let method = TIME_OK ? "time" : "random";
+let cast = null;   // {r, question, date}
+let timers = [];
+
+/* ── ① 問題畫面 ── */
+const MODE_IDS = {time:"modeTime", random:"modeRandom", numbers:"modeNumbers"};
+const PANEL_IDS = {time:"panelTime", random:"panelRandom", numbers:"panelNumbers"};
+function setMethod(m){
+  method = m;
+  Object.keys(MODE_IDS).forEach(k=>{
+    const b = $(MODE_IDS[k]), on = k===m;
+    b.classList.toggle("on", on); b.setAttribute("aria-checked", on); b.tabIndex = on ? 0 : -1;
+    $(PANEL_IDS[k]).classList.toggle("hidden", !on);
+  });
+  showError("");
+}
+function showError(msg){ $("formError").textContent = msg; $("formError").classList.toggle("hidden", !msg); }
+function updateNow(){
+  if(!TIME_OK){ $("nowText").textContent = "此瀏覽器無法換算農曆，請改用隨機或數字起卦。"; return; }
+  try{
+    const n = M.taipeiNow(), l = M.lunarInfo(n.date, n.time, "midnight");
+    $("nowText").textContent = l.label;
+  }catch(e){ $("nowText").textContent = e.message; }
+}
+$("question").addEventListener("input", ()=>{ $("qcount").textContent = $("question").value.length; });
+Object.keys(MODE_IDS).forEach(k=>{
+  const b = $(MODE_IDS[k]);
+  b.addEventListener("click", ()=>setMethod(k));
+  b.addEventListener("keydown", e=>{
+    if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) return;
+    e.preventDefault();
+    const order = ["time","random","numbers"].filter(x=>!$(MODE_IDS[x]).disabled);
+    const i = order.indexOf(method), d = (e.key==="ArrowLeft"||e.key==="ArrowUp") ? -1 : 1;
+    const next = order[(i + d + order.length) % order.length];
+    setMethod(next); $(MODE_IDS[next]).focus();
+  });
+});
+$("startBtn").addEventListener("click", start);
+$("question").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && (e.metaKey || e.ctrlKey)){ e.preventDefault(); start(); }
+});
+["numUpper","numLower","numMoving"].forEach(id=>$(id).addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); start(); } }));
+
+function start(){
+  if(!ENGINE_OK) return;
+  let input;
+  try{
+    if(method === "time"){
+      const n = M.taipeiNow();
+      input = {method:"time", date:n.date, time:n.time, rollover:"midnight"};
+    }else if(method === "random"){
+      input = {method:"random", numbers:randomNumbers()};
+    }else{
+      const vals = ["numUpper","numLower","numMoving"].map(id=>$(id).value.trim());
+      if(vals.some(v=>v==="")) throw new Error("請填滿三個數字（1 至 999999999 的整數）。");
+      input = {method:"numbers", numbers:vals.map(Number)};
+    }
+    const r = M.calculate(input);
+    const d = new Date();
+    cast = { r, question: $("question").value.trim(),
+             date: [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("/") };
+  }catch(e){ showError(e.message || "起卦失敗，請再試一次。"); return; }
+  showError("");
+  renderDraw();
+}
+
+/* ── ② 卦象畫面 ── */
+function hexHTML(h, pos, moving, cls){
+  /* h.lines 由下而上；畫面由上而下排列 */
+  const yao = h.lines.map((v,i)=>({v,i})).reverse().map(({v,i})=>
+    `<div class="yao${i+1===moving ? " moving" : ""}" data-n="${i}">${v ? "<span></span>" : "<span></span><span></span>"}</div>`).join("");
+  const aria = `${pos}：${h.fullName}，由下至上 ${h.lines.map((v,i)=>(v?"陽":"陰")+(i+1===moving?"（動）":"")).join("、")}`;
+  return `<div class="hexslot ${cls}">
+    <div class="pos">${pos}</div>
+    <div class="hex" role="img" aria-label="${esc(aria)}">${yao}</div>
+    <div class="hex-label"><div class="hex-name">${esc(h.fullName)}</div><div class="hex-theme">${esc(h.theme)}</div></div>
+  </div>`;
+}
+function cardHTML(r){
+  const chips = [r.base.theme, "體用・" + r.initialRelation.type, "變用對體・" + r.changedRelation.type, r.movingName + "動"]
+    .map(k=>`<span>${esc(k)}</span>`).join("");
+  const kv = (k,v)=>`<div class="kv"><b>${k}</b>${v}</div>`;
+  const deep = [
+    kv("變卦同位爻（對照）", `${esc(r.changed.fullName)}・${esc(r.changedText.label)}：${esc(r.changedText.text)}<br><a href="${esc(r.changedText.source)}" target="_blank" rel="noopener noreferrer">《周易・${esc(r.changed.name)}》原文 ↗</a>`),
+    kv("體用", `體為${r.bodyPosition==="upper"?"上":"下"}卦${esc(r.body.name)}（${r.body.element}），用為${r.usePosition==="upper"?"上":"下"}卦${esc(r.use.name)}（${r.use.element}）。${esc(r.initialRelation.detail)}，${esc(r.initialRelation.type)}：${esc(r.initialRelation.meaning)}${esc(r.initialRelation.observe)}`),
+    kv("互卦與變卦", `互卦${esc(r.mutual.fullName)}：上${esc(r.mutual.upper.name)}${r.mutual.upper.element}對體${esc(r.mutualRelations[0].type)}，下${esc(r.mutual.lower.name)}${r.mutual.lower.element}對體${esc(r.mutualRelations[1].type)}。變卦${esc(r.changed.fullName)}，變用${esc(r.changedUse.name)}${r.changedUse.element}對體：${esc(r.changedRelation.type)}——${esc(r.changedRelation.meaning)}`),
+    kv("可以留意的線索", `${esc(r.base.name)}・${esc(r.base.theme)}：${esc(r.base.question)}`),
+    kv("演算", r.calculation.map(c=>`${c.label}：${esc(c.text)}`).join("<br>")),
+    `<p class="fine">爻辭中的吉凶字眼是古人的提醒語，不是判決；白話線索為小六太乙整理，供對照實際發展。</p>`
+  ].join("");
+  return `<div class="card">
+    <div class="card-head">
+      <div>
+        <div class="eyebrow">本卦・第 ${r.base.id} 卦</div>
+        <h2>${esc(r.base.fullName)}</h2>
+        <div class="en-name">上${esc(r.base.upper.name)}${r.base.upper.image}・下${esc(r.base.lower.name)}${r.base.lower.image}・${esc(r.movingName)}動</div>
+      </div>
+      <div class="card-seal gua" aria-hidden="true">${r.base.symbol}</div>
+    </div>
+    <div class="chips">${chips}</div>
+    <div class="task"><b>動爻爻辭・《周易》原文</b><span class="yaoci">${esc(r.movingText.label)}：${esc(r.movingText.text)}</span><a class="src" href="${esc(r.movingText.source)}" target="_blank" rel="noopener noreferrer">《周易・${esc(r.base.name)}》原文 ↗</a></div>
+    <details class="deep-toggle">
+      <summary>展開卦象細節</summary>
+      <div class="deep-copy">${deep}</div>
+    </details>
+  </div>`;
+}
+function renderDraw(){
+  timers.forEach(clearTimeout); timers = [];
+  const r = cast.r;
+  $("methodTag").textContent = METHOD[r.method];
+  $("qline").innerHTML = cast.question
+    ? `<b>問</b>${esc(cast.question)}`
+    : `<b>問</b><span style="color:var(--mist)">（未填，以此刻心中所掛念的事為題）</span>`;
+  const row = $("spreadRow");
+  row.innerHTML = hexHTML(r.base,"本卦",r.moving,"main") + hexHTML(r.mutual,"互卦",0,"side") + hexHTML(r.changed,"變卦",0,"side");
+  const src = r.method === "time" ? `${r.source.lunar.label}` : `三數 ${r.source.numbers.join(" / ")}`;
+  $("drawHint").textContent = "自初爻起，卦象正在展開…";
+  $("cards").innerHTML = "";
+  $("aiPanel").classList.add("hidden");
+  $("copyBtn").classList.remove("done"); $("copyBtn").textContent = "複製完整解讀提示";
+  const fb = $("promptFallback"); if(fb) fb.remove();
+  $("askView").classList.add("hidden");
+  $("drawView").classList.remove("hidden");
+  window.scrollTo({top:0, behavior:"auto"});
+
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const slots = row.querySelectorAll(".hexslot");
+  const mainYao = [...slots[0].querySelectorAll(".yao")].reverse();   // 由初爻往上
+  const step = reduce ? 0 : 230;
+  mainYao.forEach((y,i)=>timers.push(setTimeout(()=>y.classList.add("on"), step*(i+1))));
+  const t1 = step*7;
+  timers.push(setTimeout(()=>{
+    slots[0].classList.add("done");
+    [slots[1], slots[2]].forEach(s=>{ s.querySelectorAll(".yao").forEach(y=>y.classList.add("on")); s.classList.add("done"); });
+    $("drawHint").textContent = `${src}・${r.movingName}動`;
+  }, t1));
+  timers.push(setTimeout(()=>{
+    $("cards").innerHTML = cardHTML(r);
+    $("aiPanel").classList.remove("hidden");
+    scrollToEl($("aiPanel"));
+  }, t1 + (reduce ? 0 : 520)));
+}
+function currentPrompt(){
+  const style = document.querySelector('input[name="style"]:checked').value;
+  return buildPrompt({r: cast.r, question: cast.question, style, date: cast.date});
+}
+$("copyBtn").addEventListener("click", async ()=>{
+  if(!ENGINE_OK || !cast) return;
+  const text = currentPrompt();
+  const ok = await copyText(text);
+  if(ok){
+    $("copyBtn").classList.add("done"); $("copyBtn").textContent = "已複製 ✓"; toast("已複製，貼到 AI 即可");
+  }else{
+    toast("複製失敗，請長按選取文字");
+    let pre = $("promptFallback");
+    if(!pre){
+      pre = document.createElement("textarea"); pre.id = "promptFallback"; pre.readOnly = true;
+      pre.style.cssText = "width:100%;min-height:220px;font-family:inherit;font-size:.8rem;line-height:1.7;border:1px solid var(--paper-line);border-radius:10px;padding:10px;background:#fff;";
+      $("aiPanel").appendChild(pre);
+    }
+    pre.value = text;
+  }
+});
+document.querySelectorAll('input[name="style"]').forEach(el=>el.addEventListener("change", ()=>{
+  $("copyBtn").classList.remove("done"); $("copyBtn").textContent = "複製完整解讀提示";
+}));
+function backToAsk(clear){
+  timers.forEach(clearTimeout); timers = [];
+  if(clear){
+    $("question").value = ""; $("qcount").textContent = "0";
+    ["numUpper","numLower","numMoving"].forEach(id=>$(id).value = "");
+  }
+  updateNow();
+  $("drawView").classList.add("hidden");
+  $("askView").classList.remove("hidden");
+  window.scrollTo({top:0, behavior:"auto"});
+  requestAnimationFrame(()=>$("question").focus());
+}
+$("newBtn").addEventListener("click", ()=>backToAsk(true));
+$("backBtn").addEventListener("click", ()=>backToAsk(false));
+
+/* ── 開機 ── */
+if(!TIME_OK){
+  $("modeTime").disabled = true;
+  $("modeTime").querySelector(".mode-desc").textContent = "此瀏覽器不支援";
+}
+setMethod(method);
+updateNow();
+setInterval(updateNow, 30000);
+if(!ENGINE_OK){
+  $("startBtn").disabled = true;
+  showError("起卦模組自測未通過，暫停起卦；請重新整理頁面再試。");
+}
+</script>
+</body>
+</html>
